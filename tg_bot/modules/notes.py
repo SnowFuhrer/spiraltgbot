@@ -52,6 +52,7 @@ ENUM_FUNC_MAP = {
 
 
 # Do not async
+@user_admin
 def get(update, context, notename, show_none=True, no_format=False):
     # sourcery no-metrics
     bot = context.bot
@@ -210,7 +211,7 @@ def get(update, context, notename, show_none=True, no_format=False):
     elif show_none:
         message.reply_text("This note doesn't exist")
 
-
+@user_admin
 @kigcmd(command="get")
 @connection_status
 @rate_limit(40, 60)
@@ -224,8 +225,8 @@ def cmd_get(update: Update, context: CallbackContext):
         update.effective_message.reply_text("Get rekt")
 
 
-
 @kigmsg((Filters.regex(r"^#[^\s]+") & ~Filters.user(777000)), group=-14)
+@user_admin
 @connection_status
 @rate_limit(40, 60)
 def hash_get(update: Update, context: CallbackContext):
@@ -235,8 +236,8 @@ def hash_get(update: Update, context: CallbackContext):
     get(update, context, no_hash, show_none=False)
 
 
-
 @kigmsg((Filters.regex(r"^/\d+$")), group=-16)
+@user_admin
 @connection_status
 @rate_limit(40, 60)
 def slash_get(update: Update, context: CallbackContext):
@@ -273,7 +274,7 @@ def save(update: Update, context: CallbackContext):
     )
 
     msg.reply_text(
-        f"Yas! Added `{note_name}`.\nGet it with /get `{note_name}`, or `#{note_name}`",
+        f"Added `{note_name}`.\nGet it with /get `{note_name}`, or `#{note_name}`",
         parse_mode=ParseMode.MARKDOWN,
     )
 
@@ -372,8 +373,8 @@ def clearall_btn(update: Update, context: CallbackContext):
         if member.status == "member":
             query.answer("You need to be admin to do this.")
 
-
 @kigcmd(command=["notes", "saved"])
+@user_admin
 @connection_status
 @rate_limit(40, 60)
 def list_notes(update: Update, context: CallbackContext):

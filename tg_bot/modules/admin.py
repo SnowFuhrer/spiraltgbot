@@ -354,6 +354,8 @@ def invite(update: Update, context: CallbackContext):
 
 
 @kigcmd(command=["admin", "admins"])
+@bot_admin
+@user_admin
 @rate_limit(40, 60)
 def adminlist(update: Update, _):
     administrators = update.effective_chat.get_administrators()

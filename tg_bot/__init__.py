@@ -29,7 +29,7 @@ logging.basicConfig(
         RotatingFileHandler("kigyo.log", maxBytes=1024 * 1024, backupCount=5),
         logging.StreamHandler(),
     ],
-    level=logging.DEBUG if kigconfig.getboolean("IS_DEBUG", False) else logging.WARN,
+    level=logging.DEBUG if kigconfig.getboolean("IS_DEBUG", False) else logging.DEBUG,
 )
 
 log = logging.getLogger("[Enterprise]")
@@ -37,9 +37,9 @@ logging.getLogger("ptbcontrib.postgres_persistence.postgrespersistence").setLeve
     logging.WARNING
 )
 
-log.info("[KIGYO] Kigyo is starting. | An Eagle Union Project. | Licensed under GPLv3.")
+log.info("[KIGYO] Spiral is starting. | Licensed under GPLv3.")
 log.info("[KIGYO] Not affiliated to Azur Lane or Yostar in any way whatsoever.")
-log.info("[KIGYO] Project maintained by: github.com/Dank-del (t.me/dank_as_fuck)")
+log.info("[KIGYO] Base project maintained by https://github.com/snowfuhrer")
 
 if sys.version_info < (3, 7):
     log.error(
@@ -79,8 +79,8 @@ class KigyoINIT:
         self.LASTFM_API_KEY: str = self.parser.get("LASTFM_API_KEY", None)
         self.CF_API_KEY: str = self.parser.get("CF_API_KEY", None)
         self.bot_id: int = 0
-        self.bot_name: str = "Kigyo"
-        self.bot_username: str = "KigyoRobot"
+        self.bot_name: str = "Spiral"
+        self.bot_username: str = "enrapturedoverwatch_bot"
         self.DEBUG: bool = self.parser.getboolean("IS_DEBUG", False)
         self.DROP_UPDATES: bool = self.parser.getboolean("DROP_UPDATES", True)
         self.BOT_API_URL: str = self.parser.get(
@@ -148,7 +148,7 @@ REDIS_DB = KInit.REDIS_DB
 
 # Configure Redis connection
 redis_conn = Redis(
-    host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=REDIS_DB
+   host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, db=REDIS_DB
 )
 
 # Test Redis connection

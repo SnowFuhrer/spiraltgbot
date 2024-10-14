@@ -289,6 +289,7 @@ def kick(update: Update, context: CallbackContext) -> str:
 
 
 @kigcmd(command='kickme', pass_args=True, filters=Filters.chat_type.groups)
+@user_admin
 @bot_admin
 @can_restrict
 @rate_limit(40, 60)

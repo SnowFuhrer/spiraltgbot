@@ -159,13 +159,13 @@ def start(update: Update, context: CallbackContext):  # sourcery no-metrics
                 reply_markup=InlineKeyboardMarkup(
                     [
                         [
+#                            InlineKeyboardButton(
+#                                text=gs(chat.id, "updates_channel_link_btn"),
+#                                url="https://t.me/spiralsupport",
+#                            ),
                             InlineKeyboardButton(
-                                text=gs(chat.id, "support_chat_link_btn"),
-                                url="https://t.me/YorktownEagleUnion",
-                            ),
-                            InlineKeyboardButton(
-                                text=gs(chat.id, "updates_channel_link_btn"),
-                                url="https://t.me/KigyoUpdates",
+                                text=gs(chat.id, "support_group_link_btn"),
+                                url="https://t.me/spiralsupport",
                             ),
                             InlineKeyboardButton(
                                 text=gs(chat.id, "src_btn"),
@@ -222,7 +222,7 @@ def start(update: Update, context: CallbackContext):  # sourcery no-metrics
                     [
                         InlineKeyboardButton(text="Back", callback_data="help_back"),
                         InlineKeyboardButton(
-                            text="Support", url="https://t.me/YorkTownEagleUnion"
+                            text="Support", url="https:/t.me/spiralsupport"
                         ),
                     ]
                 )
@@ -264,15 +264,15 @@ def start(update: Update, context: CallbackContext):  # sourcery no-metrics
                         [
                             InlineKeyboardButton(
                                 text=gs(chat.id, "support_chat_link_btn"),
-                                url="https://t.me/YorktownEagleUnion",
+                                url="https://t.me/spiralsupport",
                             ),
-                            InlineKeyboardButton(
-                                text=gs(chat.id, "updates_channel_link_btn"),
-                                url="https://t.me/KigyoUpdates",
-                            ),
+#                            InlineKeyboardButton(
+#                                text=gs(chat.id, "updates_channel_link_btn"),
+#                                url="https://t.me/KigyoUpdates",
+#                            ),
                             InlineKeyboardButton(
                                 text=gs(chat.id, "src_btn"),
-                                url="https://github.com/Dank-del/EnterpriseALRobot",
+                                url="https://github.com/SnowFuhrer/spiraltgbot",
                             ),
                         ],
                         [
@@ -371,7 +371,7 @@ def help_button(update: Update, context: CallbackContext):
                 [
                     InlineKeyboardButton(text="Back", callback_data="help_back"),
                     InlineKeyboardButton(
-                        text="Support", url="https://t.me/YorkTownEagleUnion"
+                        text="Support", url="https://t.me/spiralsupport"
                     ),
                 ]
             )
@@ -501,7 +501,7 @@ def get_help(update: Update, context: CallbackContext):
                 [
                     InlineKeyboardButton(text="Back", callback_data="help_back"),
                     InlineKeyboardButton(
-                        text="Support", url="https://t.me/YorkTownEagleUnion"
+                        text="Support", url="https://t.me/spiralsupport"
                     ),
                 ]
             )

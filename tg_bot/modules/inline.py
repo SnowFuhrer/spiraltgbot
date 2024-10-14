@@ -64,25 +64,18 @@ def inlinequery(update: Update, _) -> None:
             #    "keyboard": ".spb ",
             #},
             {
-                "title": "Account info on Kigyo",
-                "description": "Look up a Telegram account in Kigyo database",
-                "message_text": "Click the button below to look up a person in Kigyo database using their Telegram ID",
-                "thumb_urL": "https://telegra.ph/file/c85e07b58f5b3158b529a.jpg",
+                "title": "Account info on Spiral",
+                "description": "Look up a Telegram account in Spiral database",
+                "message_text": "Click the button below to look up a person in Spiral database using their Telegram ID",
+                "thumb_urL": "https://t.me/enrapturedoverwatch_bot",
                 "keyboard": ".info ",
             },
             {
                 "title": "About",
-                "description": "Know about Kigyo",
-                "message_text": "Click the button below to get to know about Kigyo.",
-                "thumb_urL": "https://telegra.ph/file/c85e07b58f5b3158b529a.jpg",
+                "description": "Know about Spiral",
+                "message_text": "Click the button below to look up a person in Spiral database using their Telegram ID",
+                "thumb_urL": "https://t.me/enrapturedoverwatch_bot",
                 "keyboard": ".about ",
-            },
-            {
-                "title": "Anilist",
-                "description": "Search anime and manga on AniList.co",
-                "message_text": "Click the button below to search anime and manga on AniList.co",
-                "thumb_urL": "https://telegra.ph/file/c85e07b58f5b3158b529a.jpg",
-                "keyboard": ".anilist ",
             },
         ]
 
@@ -151,19 +144,19 @@ def inlineinfo(query: str, update: Update, context: CallbackContext) -> None:
         text += "\\n\\nThis person is my owner"
         nation_level_present = True
     elif user.id in DEV_USERS:
-        text += "\\n\\nThis Person is a part of Eagle Union"
+        text += "\\n\\nThis Person is a part of the developers"
         nation_level_present = True
     elif user.id in SUDO_USERS:
-        text += "\\n\\nThe Nation level of this person is Royal"
+        text += "\\n\\nThis person is a sudo user"
         nation_level_present = True
     elif user.id in SUPPORT_USERS:
-        text += "\\n\\nThe Nation level of this person is Sakura"
+        text += "\\n\\nThis person is a support user"
         nation_level_present = True
     elif user.id in SARDEGNA_USERS:
         text += "\\n\\nThe Nation level of this person is Sardegna"
         nation_level_present = True
     elif user.id in WHITELIST_USERS:
-        text += "\\n\\nThe Nation level of this person is Neptunia"
+        text += "\\n\\nThis person is whitelisted"
         nation_level_present = True
 
     if nation_level_present:
@@ -182,7 +175,7 @@ def inlineinfo(query: str, update: Update, context: CallbackContext) -> None:
 
 
 
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Report Error", url="https://t.me/YorktownEagleUnion"), InlineKeyboardButton(text="Search again", switch_inline_query_current_chat=".info ",)]])
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Report Error", url="https://t.me/enrapturedoverwatch_bot"), InlineKeyboardButton(text="Search again", switch_inline_query_current_chat=".info ",)]])
 
 
     results = [
@@ -345,7 +338,7 @@ def media_query(query: str, update: Update, context: CallbackContext) -> None:
                 )
             )
     except Exception as e:
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Report error", url="t.me/YorktownEagleUnion"), InlineKeyboardButton(text="Search again", switch_inline_query_current_chat=".anilist ")]])
+        kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Report error", url="t.me/enrapturedoverwatch_bot"), InlineKeyboardButton(text="Search again", switch_inline_query_current_chat=".anilist ")]])
 
         results.append(InlineQueryResultArticle(id=str(uuid4()), title=f"Media {query} not found", input_message_content=InputTextMessageContent(f"Media {query} not found due to {e}", parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True), reply_markup=kb))
 

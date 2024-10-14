@@ -10,9 +10,9 @@ pm_start_text: |
   Aku adalah waifu bot untuk mengatur grup dengan fitur-fitur yang mantul ;)
   
   Kamu bisa lihat menu perintah dengan /help
-grp_start_text: "Hai, Aku Kigyo."
+grp_start_text: "Hai, Aku Spiral."
 pm_help_text: |
-  Hai kak! Namaku *Kigyo*. Anggota dari *Eagle Union*.
+  Hai kak! Namaku *Spiral*. Anggota dari *Spiral Control*.
   Aku adalah bot untuk membantu grup dengan fitur-fitur yang mantul! Silahkan lihat-lihat dulu.
   Menu perintah *utama* yang tersedia:
    • /start: Untuk bangunkan aku. Untuk mengecek aku hidup atau modar.
@@ -22,9 +22,9 @@ pm_help_text: |
      - dalam PC: mengirim semua pengaturan.
      - dalam grup: akan mengirim pesan ke private, dengan semua pengaturan.
    Klik tombol dibawah untuk mengetahui lebih lanjut tentang semua fitur!
-add_bot_to_group_btn: "Tambah Kigyo ke dalam grup kamu"
-support_chat_link_btn: "Chat Bantuan // Eagle Union"
-updates_channel_link_btn: "Channel Kigyo Official"
+add_bot_to_group_btn: "Tambah Spiral ke dalam grup kamu"
+support_chat_link_btn: "Chat Bantuan // Spiral Control"
+updates_channel_link_btn: "Spiral Control Channel"
 src_btn: "Source code (Berlisensi GPLv3)"
 admin_help: |
   • `/admins`*:* Tampilkan semua admin di dalam chat

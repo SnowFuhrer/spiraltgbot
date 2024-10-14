@@ -81,36 +81,36 @@ def gban(update: Update, context: CallbackContext):  # sourcery no-metrics
 
     if int(user_id) in DEV_USERS:
         message.reply_text(
-            "That user is part of the Union\nI can't act against our own."
+            "They cannot be banned!"
         )
         return
 
     if int(user_id) in SUDO_USERS:
         message.reply_text(
-            "I spy, with my little eye... a nation! Why are you guys turning on each other?"
+            "They cannot be banned!"
         )
         return
 
     if int(user_id) in SUPPORT_USERS:
         message.reply_text(
-            "OOOH someone's trying to gban a Sakura Nation! *grabs popcorn*"
+            "They cannot be banned!"
         )
         return
 
     if int(user_id) in SARDEGNA_USERS:
-        message.reply_text("That's a Sardegna! They cannot be banned!")
+        message.reply_text("They cannot be banned!")
         return
 
     if int(user_id) in WHITELIST_USERS:
-        message.reply_text("That's a Neptunia! They cannot be banned!")
+        message.reply_text("They cannot be banned!")
         return
 
     if int(user_id) in (777000, 1087968824):
-        message.reply_text("Huh, why would I gban Telegram bots?")
+        message.reply_text("Why would I gban Telegram bots?")
         return
 
     if user_id == bot.id:
-        message.reply_text("You uhh...want me to kill myself?")
+        message.reply_text("Cant ban myself")
         return
 
     try:

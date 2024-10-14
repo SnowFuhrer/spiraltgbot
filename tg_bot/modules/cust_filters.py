@@ -48,6 +48,7 @@ ENUM_FUNC_MAP = {
 
 @typing_action
 @kigcmd(command='filters', admin_ok=True)
+@user_admin
 @rate_limit(40, 60)
 def list_handlers(update, context):
     chat = update.effective_chat

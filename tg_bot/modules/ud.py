@@ -2,8 +2,10 @@ import requests
 from telegram import ParseMode, Update
 from telegram.ext import CallbackContext, run_async
 from tg_bot.modules.helper_funcs.decorators import kigcmd, rate_limit
+from tg_bot.modules.helper_funcs.chat_status import bot_admin
 
 @kigcmd(command=["ud", "urban"])
+@bot_admin
 @rate_limit(40, 60)
 def ud(update: Update, context: CallbackContext):
     message = update.effective_message

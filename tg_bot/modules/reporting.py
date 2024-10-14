@@ -107,7 +107,7 @@ def report(update: Update, context: CallbackContext) -> str:
             return ""
 
         if user.id == reported_user.id:
-            message.reply_text("Uh yeah, Sure sure...maso much?")
+            message.reply_text("Reporting yourself?")
             return ""
 
         if user.id == bot.id:
@@ -115,7 +115,7 @@ def report(update: Update, context: CallbackContext) -> str:
             return ""
 
         if reported_user.id in REPORT_IMMUNE_USERS:
-            message.reply_text("Uh? You reporting a nation?")
+            message.reply_text("Can't report this person.")
             return ""
 
         if chat.username and chat.type == Chat.SUPERGROUP:
@@ -218,9 +218,9 @@ def report(update: Update, context: CallbackContext) -> str:
 
         try:
             update.effective_message.reply_sticker(
-                "CAACAgUAAx0CRSKHWwABAXGoYB2UJauytkH4RJWSStz9DTlxQg0AAlcHAAKAUF41_sNx9Y1z2DQeBA")
+                "AAMCBAADGQEAAS5dsmcKGJkjK7vK0uvWkSCz6XWlTGTWAAKvBAACCO1KJwKNWofwT1VtAQAHbQADNgQ")
         except:
-            pass
+            passs
         message.reply_to_message.reply_text(
             reported,
             parse_mode=ParseMode.HTML,
@@ -256,7 +256,7 @@ def buttons(update: Update, context: CallbackContext):
         try:
             bot.kickChatMember(splitter[0], splitter[2])
             bot.unbanChatMember(splitter[0], splitter[2])
-            query.answer("✅ Succesfully kicked")
+            query.answer("✅ Successfully kicked")
             return ""
         except Exception as err:
             query.answer("🛑 Failed to kick")

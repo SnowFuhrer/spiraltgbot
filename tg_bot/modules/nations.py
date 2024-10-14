@@ -108,7 +108,7 @@ def addsupport(
         return ""
 
     if user_id in SUDO_USERS:
-        rt += "Requested Eagle Union to demote this Sudo to Support"
+        rt += "Requested to demote this Sudo to Support"
         SUDO_USERS.remove(user_id)
 
     if user_id in SUPPORT_USERS:
@@ -116,7 +116,7 @@ def addsupport(
         return ""
 
     if user_id in WHITELIST_USERS:
-        rt += "Requested Eagle Union to promote this Whitelist user to Support"
+        rt += "Requested to promote this Whitelist user to Support"
         WHITELIST_USERS.remove(user_id)
 
     sql.set_royal_role(user_id, "supports")
@@ -258,7 +258,7 @@ def removesudo(update: Update, context: CallbackContext) -> str:
         return ""
 
     if user_id in SUDO_USERS:
-        message.reply_text("Requested Eagle Union to demote this user to Civilian")
+        message.reply_text("Requested to demote this user to Civilian")
         SUDO_USERS.remove(user_id)
         sql.remove_royal(user_id)
 
@@ -390,16 +390,16 @@ def removesardegna(update: Update, context: CallbackContext) -> str:
         return ""
 
 # I added extra new lines
-nations = """ Kigyō has bot access levels we call as *"Nation Levels"*
-\n*Eagle Union* - Devs who can access the bots server and can execute, edit, modify bot code. Can also manage other Nations
-\n*God* - Only one exists, bot owner.
-Owner has complete bot access, including bot adminship in chats Kigyō is at.
-\n*Royals* - Have super user access, can gban, manage Nations lower than them and are admins in Kigyō.
-\n*Sakuras* - Have access go globally ban users across Kigyō.
-\n*Sardegnas* - Same as Neptunians but can unban themselves if banned.
-\n*Neptunians* - Cannot be banned, muted flood kicked but can be manually banned by admins.
+nations = """ Spiral has bot access levels we call as *"Nation Levels"*
+\n*Devs* - Devs who can access the bots server and can execute, edit, modify bot code. Can also manage other Nations
+\n*Owner* - Only one exists, bot owner.
+Owner has complete bot access, including bot adminship in chats Spiral is at.
+\n*Sudo* - Have super user access, can gban, manage admins lower than them and are admins in Spiral.
+\n*Support* - Have access to globally ban users across Spiral.
+\n*Gold* - Same as Silver but can unban themselves if banned.
+\n*Silver* - Cannot be banned, muted flood kicked but can be manually banned by admins.
 \n*Disclaimer*: The Nation levels in Kigyō are there for troubleshooting, support, banning potential scammers.
-Report abuse or ask us more on these at [Eagle Union](https://t.me/YorktownEagleUnion).
+Report abuse or ask us more on these at [Spiral Support](https://t.me/enrapturedoverwatch_bot).
 """
 
 
@@ -470,13 +470,13 @@ def sudolist(update: Update, context: CallbackContext):
             pass
     update.effective_message.reply_text(reply, parse_mode=ParseMode.HTML)
 
-@kigcmd(command=["devlist", "eagle"])
+@kigcmd(command=["devlist"])
 @whitelist_plus
 @rate_limit(40, 60)
 def devlist(update: Update, context: CallbackContext):
     bot = context.bot
     true_dev = list(set(DEV_USERS) - {OWNER_ID})
-    reply = "<b>Eagle Union Members :</b>\n"
+    reply = "<b>Spiral Members :</b>\n"
     for each_user in true_dev:
         user_id = int(each_user)
         try:

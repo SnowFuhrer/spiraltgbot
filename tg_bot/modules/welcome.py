@@ -51,8 +51,8 @@ from telegram.ext import (
 from telegram.utils.helpers import escape_markdown, mention_html, mention_markdown
 import tg_bot.modules.sql.log_channel_sql as logsql
 from ..modules.helper_funcs.anonymous import user_admin, AdminPerms
-from .sibylsystem import sibylClient, does_chat_sibylban
-from SibylSystem import GeneralException
+#from .sibylsystem import sibylClient, does_chat_sibylban
+#from SibylSystem import GeneralException
 
 VALID_WELCOME_FORMATTERS = [
     "first",
@@ -216,82 +216,18 @@ def new_member(update: Update, context: CallbackContext):  # sourcery no-metrics
             chat.ban_member(new_mem.id, until_date=bantime)
         return
 
-    data = None
-    if sibylClient and does_chat_sibylban(chat.id):
-        try:
-            data = sibylClient.get_info(user.id)
-        except GeneralException:
-            pass
-        except BaseException as e:
-            log.error(e)
-        if data and data.banned:
-            return  # all modes handle it in different ways
-
     # if sw != None:
     #     sw_ban = sw.get_ban(new_mem.id)
     #     if sw_ban:
     #         return
 
     if should_welc:
-        # Give the owner a special welcome
-        if new_mem.id == OWNER_ID:
-            bot.send_message(
-                chat.id,
-                "Oh hi, my creator.",
-            )
-            welcome_log = (
-                f"{html.escape(chat.title)}\n"
-                f"#USER_JOINED\n"
-                f"Bot Owner just joined the chat"
-            )
-            return
-
-        # Welcome Devs
-        elif new_mem.id in DEV_USERS:
-            bot.send_message(
-                chat.id,
-                "Whoa! A member of the Eagle Union just joined!",
-            )
-            return
-
-        # Welcome Sudos
-        elif new_mem.id in SUDO_USERS:
-            bot.send_message(
-                chat.id,
-                "Huh! A Royal Nation just joined! Stay Alert!",
-            )
-            return
-
-        # Welcome Support
-        elif new_mem.id in SUPPORT_USERS:
-            bot.send_message(
-                chat.id,
-                "Huh! Someone with a Sakura Nation level just joined!",
-            )
-            return
-
-        # Welcome Whitelisted
-        elif new_mem.id in SARDEGNA_USERS:
-            bot.send_message(
-                chat.id,
-                "Oof! A Sadegna Nation just joined!",
-            )
-            return
-
-        # Welcome SARDEGNA_USERS
-        elif new_mem.id in WHITELIST_USERS:
-            bot.send_message(
-                chat.id,
-                "Oof! A Neptuia Nation just joined!",
-            )
-            return
-
         # Welcome yourself
-        elif new_mem.id == bot.id:
-            bot.send_message(
-                chat.id,
-                "Thanks for adding me! Join @YorkTownEagleUnion for support.",
-            )
+        if new_mem.id == bot.id:
+#            bot.send_message(
+#                chat.id,
+#                "Thanks for adding me! Join https://t.me/+T2yKIyPi1VYxM2Y5 for support",
+#            )
             return
 
         else:
@@ -656,18 +592,10 @@ def left_member(update: Update, context: CallbackContext):  # sourcery no-metric
 
             # Give the owner a special goodbye
             if left_mem.id == OWNER_ID:
-                bot.send_message(
-                    chat.id,
-                    "Sorry to see you leave :(",
-                )
                 return
 
             # Give the devs a special goodbye
             elif left_mem.id in DEV_USERS:
-                bot.send_message(
-                    chat.id,
-                    "See you later at the Eagle Union!",
-                )
                 return
 
             # if media goodbye, use appropriate function for it
@@ -780,7 +708,7 @@ def welcome(update: Update, context: CallbackContext):
         elif args[0].lower() in ("off", "no"):
             sql.set_welc_preference(str(chat.id), False)
             update.effective_message.reply_text(
-                "I'll go loaf around and not welcome anyone then."
+                "I'll not welcome anyone."
             )
 
         else:
