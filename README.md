@@ -1,6 +1,6 @@
 ![Enterprise]
 # Spiral
-
+!!!!!Almost completely broken as I work on the new ptb22 base!!!!
 A modular telegram Python bot running on python3 with an SQLalchemy database.
 
 It can be found on telegram as [Spiral](https://t.me/enrapturedoverwatch_bot).
