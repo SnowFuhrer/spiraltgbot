@@ -1,0 +1,9 @@
+config.ini
+ *.log
+ pyvenv.cfg
+.venv
+*.session
+*.exe
+*.png
+*.pyc
+
