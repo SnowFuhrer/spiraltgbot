@@ -190,7 +190,7 @@ async def set_title(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     message = update.effective_message
 
-    user_id, title = extract_user_and_text(message, args)
+    user_id, title = await extract_user_and_text(message, args)
     try:
         user_member = await chat.get_member(user_id)
     except Exception:
