@@ -6,4 +6,8 @@ config.ini
 *.exe
 *.png
 *.pyc
+tg_bot/modules/preload.py
+tg_bot/modules/songsearch.py
+tg_bot/modules/audio_segmenter.py
+tg_bot/modules/helper_funcs/segmenter.py
 

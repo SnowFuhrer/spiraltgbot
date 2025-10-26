@@ -1,0 +1,288 @@
+import importlib
+import logging
+import re
+import asyncio
+import traceback
+import sys
+import signal
+from contextlib import suppress
+from typing import Optional, List, Dict, Any
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram.constants import ParseMode, ChatType
+from telegram.error import (
+    TelegramError,
+    BadRequest,
+    TimedOut,
+    NetworkError,
+    Forbidden,
+)
+from telegram.ext import (
+    Application,
+    ContextTypes,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    ApplicationHandlerStop,
+    filters,
+)
+from telegram.helpers import escape_markdown
+
+from tg_bot import (
+    KInit,
+    dispatcher,
+    application,
+    WEBHOOK,
+    OWNER_ID,
+    CERT_PATH,
+    PORT,
+    URL,
+    KigyoINIT,
+)
+from tg_bot.modules.sql.users_sql import ensure_bot_in_db_app
+from tg_bot.modules import ALL_MODULES
+from tg_bot.modules.helper_funcs.chat_status import is_user_admin
+from tg_bot.modules.helper_funcs.misc import paginate_modules
+from tg_bot.modules.language import gs
+
+# --- Global registries ---
+IMPORTED: Dict[str, Any] = {}
+MIGRATEABLE: List[Any] = []
+HELPABLE: Dict[str, Any] = {}
+STATS: List[Any] = []
+USER_INFO: List[Any] = []
+DATA_IMPORT: List[Any] = []
+DATA_EXPORT: List[Any] = []
+CHAT_SETTINGS: Dict[str, Any] = {}
+USER_SETTINGS: Dict[str, Any] = {}
+
+# --- Load modules dynamically ---
+for module_name in ALL_MODULES:
+    imported_module = importlib.import_module("tg_bot.modules." + module_name)
+    if not hasattr(imported_module, "__mod_name__"):
+        imported_module.__mod_name__ = imported_module.__name__
+
+    if imported_module.__mod_name__.lower() in IMPORTED:
+        raise Exception(f"Duplicate module name detected: {imported_module.__mod_name__}")
+    IMPORTED[imported_module.__mod_name__.lower()] = imported_module
+
+    if hasattr(imported_module, "get_help") and imported_module.get_help:
+        HELPABLE[imported_module.__mod_name__.lower()] = imported_module
+    if hasattr(imported_module, "__migrate__"):
+        MIGRATEABLE.append(imported_module)
+    if hasattr(imported_module, "__stats__"):
+        STATS.append(imported_module)
+    if hasattr(imported_module, "__user_info__"):
+        USER_INFO.append(imported_module)
+    if hasattr(imported_module, "__import_data__"):
+        DATA_IMPORT.append(imported_module)
+    if hasattr(imported_module, "__export_data__"):
+        DATA_EXPORT.append(imported_module)
+    if hasattr(imported_module, "__chat_settings__"):
+        CHAT_SETTINGS[imported_module.__mod_name__.lower()] = imported_module
+    if hasattr(imported_module, "__user_settings__"):
+        USER_SETTINGS[imported_module.__mod_name__.lower()] = imported_module
+
+
+# ---------------------------------------------------------------------------
+# 🔍 ENHANCED DEBUGGING ERROR CALLBACK
+# ---------------------------------------------------------------------------
+async def error_callback(update: object, context: ContextTypes.DEFAULT_TYPE):
+    """Comprehensive async error debugger for PTB handlers."""
+    try:
+        raise context.error
+    except (Forbidden, BadRequest, TimedOut, NetworkError, TelegramError):
+        # Ignore benign errors
+        pass
+    except Exception as e:
+        logging.error("⚠️ [DEBUG] Exception type: %s", type(e).__name__)
+        logging.error("⚠️ [DEBUG] Exception: %s", e)
+
+        # Try to show the update data that triggered it
+        try:
+            if hasattr(update, "to_dict"):
+                logging.error("⚠️ [DEBUG] Update data: %s", update.to_dict())
+            else:
+                logging.error("⚠️ [DEBUG] Update object: %s", repr(update))
+        except Exception:
+            logging.error("⚠️ [DEBUG] Could not serialize update object")
+
+        # Context details
+        if context:
+            try:
+                logging.error("⚠️ [DEBUG] Context keys: %s", list(vars(context).keys()))
+            except Exception:
+                logging.error("⚠️ [DEBUG] Context inspection failed")
+
+        # Full traceback
+        tb_str = "".join(traceback.format_exception(type(e), e, e.__traceback__))
+        logging.error("⚠️ [DEBUG TRACEBACK]\n%s", tb_str)
+
+        # Special hint for coroutine chain failure
+        if isinstance(e, TypeError) and "NoneType" in str(e):
+            logging.error(
+                "💡 HINT: One of your decorators returned None instead of an awaitable coroutine."
+            )
+            logging.error(
+                "💡 Check async decorators like @user_admin, @loggable, @can_promote."
+            )
+
+        # Optional: drop into debugger in debug mode
+        if getattr(KInit, "DEBUG", False):
+            import pdb
+            pdb.post_mortem()
+
+        # Log full stack for async debugging
+        for task in asyncio.all_tasks():
+            logging.debug(
+                "Task %s: %s", task.get_name(), task.get_stack(limit=5)
+            )
+
+
+# ---------------------------------------------------------------------------
+# 📦 CORE COMMANDS
+# ---------------------------------------------------------------------------
+async def send_help(chat_id: int, text: str, keyboard: InlineKeyboardMarkup | None = None):
+    if not keyboard:
+        kb = paginate_modules(0, HELPABLE, "help")
+        keyboard = InlineKeyboardMarkup(kb)
+    await dispatcher.bot.send_message(
+        chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard
+    )
+
+
+async def test(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.effective_message.reply_text("This person edited a message")
+    print(update.effective_message)
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    args = context.args
+    if update.callback_query:
+        query = update.callback_query
+        first_name = update.effective_user.first_name
+        await update.effective_message.edit_text(
+            text=gs(chat.id, "pm_start_text").format(
+                escape_markdown(first_name),
+                escape_markdown(context.bot.first_name),
+                OWNER_ID,
+            ),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            text=gs(chat.id, "support_group_link_btn"),
+                            url="https://t.me/spiralsupport",
+                        ),
+                        InlineKeyboardButton(
+                            text=gs(chat.id, "src_btn"),
+                            url="https://github.com/SnowFuhrer/spiraltgbot",
+                        ),
+                    ],
+                    [
+                        InlineKeyboardButton(
+                            text="Try inline",
+                            switch_inline_query_current_chat="",
+                        ),
+                        InlineKeyboardButton(
+                            text="Help",
+                            callback_data="help_back",
+                        ),
+                        InlineKeyboardButton(
+                            text=gs(chat.id, "add_bot_to_group_btn"),
+                            url=f"t.me/{context.bot.username}?startgroup=true",
+                        ),
+                    ],
+                ]
+            ),
+        )
+        await context.bot.answer_callback_query(query.id)
+        return
+
+    if chat.type == ChatType.PRIVATE:
+        first_name = update.effective_user.first_name
+        await update.effective_message.reply_text(
+            text=gs(chat.id, "pm_start_text").format(
+                escape_markdown(first_name),
+                escape_markdown(context.bot.first_name),
+                OWNER_ID,
+            ),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+    else:
+        await update.effective_message.reply_text(gs(chat.id, "grp_start_text"))
+
+
+# ---------------------------------------------------------------------------
+# ⚙️ MAIN APPLICATION ENTRY
+# ---------------------------------------------------------------------------
+async def _post_init(app: Application):
+    me = await app.bot.get_me()
+    KigyoINIT.bot_id = me.id
+    KigyoINIT.bot_username = me.username
+    KigyoINIT.bot_name = me.first_name
+    await ensure_bot_in_db_app(app)
+    logging.info(f"Spiral initialized. BOT: [@{me.username}]")
+
+
+async def _graceful_shutdown():
+    with suppress(Exception):
+        await application.stop()
+    with suppress(Exception):
+        await application.shutdown()
+
+
+def main():
+    # Enable asyncio debug mode for detailed coroutine traces
+    asyncio.get_event_loop().set_debug(True)
+
+    application.post_init = _post_init
+    application.add_error_handler(error_callback)
+
+    # Core handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("test", test))
+
+    # Migration handler
+    application.add_handler(MessageHandler(filters.StatusUpdate.MIGRATE, lambda *_: None))
+
+    # Graceful signal handling
+    def _raise_kbi(signum, frame):
+        raise KeyboardInterrupt
+    try:
+        signal.signal(signal.SIGTERM, _raise_kbi)
+    except Exception:
+        pass
+
+    try:
+        if WEBHOOK:
+            logging.info("Using webhooks.")
+            application.run_webhook(
+                listen="0.0.0.0",
+                port=PORT,
+                url_path=KInit.TOKEN,
+                webhook_url=(URL or "") + KInit.TOKEN,
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=KInit.DROP_UPDATES,
+                stop_signals=None,
+            )
+        else:
+            logging.info("Using long polling.")
+            application.run_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=KInit.DROP_UPDATES,
+                stop_signals=None,
+            )
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Shutdown requested (Ctrl+C / SIGTERM). Stopping application...")
+    finally:
+        try:
+            asyncio.run(_graceful_shutdown())
+        except Exception:
+            pass
+
+
+if __name__ == "__main__":
+    logging.info("[Spiral] Debugger-enabled startup: modules=%s", str(ALL_MODULES))
+    main()
