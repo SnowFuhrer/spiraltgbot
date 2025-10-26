@@ -26,7 +26,7 @@ async def about_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     bot = context.bot
     message = update.effective_message
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
 
     user = await bot.get_chat(user_id) if user_id else message.from_user
     info = sql.get_user_me_info(user.id)
@@ -89,7 +89,7 @@ async def about_bio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
     message = update.effective_message
 
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user = await bot.get_chat(user_id) if user_id else message.from_user
     info = sql.get_user_bio(user.id)
 

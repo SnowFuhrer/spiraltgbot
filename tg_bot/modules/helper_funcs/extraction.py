@@ -45,7 +45,7 @@ async def extract_user_and_text(
 
     elif len(args) >= 1 and args[0].startswith("@"):
         user = args[0]
-        user_id = get_user_id(user)
+        user_id = await get_user_id(user)
         if not user_id:
             await message.reply_text(
                 "No idea who this user is. You'll be able to interact with them if "
@@ -115,7 +115,7 @@ async def extract_unt_fedban(
 
     elif len(args) >= 1 and args[0].startswith("@"):
         user = args[0]
-        user_id = get_user_id(user)
+        user_id = await get_user_id(user)
         if not user_id and not isinstance(user_id, int):
             await message.reply_text(
                 "I don't have users on my DB.You will be able to interact with them if "

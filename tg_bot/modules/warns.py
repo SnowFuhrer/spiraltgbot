@@ -205,7 +205,7 @@ async def warn_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     chat: Optional[Chat] = update.effective_chat
     warner: Optional[User] = update.effective_user
 
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
 
     if user_id:
         if message.reply_to_message and message.reply_to_message.from_user.id == user_id:
@@ -234,7 +234,7 @@ async def reset_warns(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str
     chat: Optional[Chat] = update.effective_chat
     user: Optional[User] = update.effective_user
 
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
 
     if user_id:
         sql.reset_warns(user_id, chat.id)
@@ -257,7 +257,7 @@ async def warns(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     message: Optional[Message] = update.effective_message
     chat: Optional[Chat] = update.effective_chat
-    user_id = extract_user(message, args) or update.effective_user.id
+    user_id = await extract_user(message, args) or update.effective_user.id
     result = sql.get_warns(user_id, chat.id)
 
     if result and result[0] != 0:

@@ -88,7 +88,8 @@ async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     msg = update.effective_message
 
-    if user_id := extract_user(msg, args):
+    user_id = await extract_user(msg, args)   # <-- await here
+    if user_id:
         if msg.reply_to_message and msg.reply_to_message.forward_from:
             user1 = message.reply_to_message.from_user
             user2 = message.reply_to_message.forward_from
@@ -114,19 +115,6 @@ async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-@kigcmd(command='gifid')
-@rate_limit(40, 60)
-async def gifid(update: Update, _):
-    msg = update.effective_message
-    if msg.reply_to_message and msg.reply_to_message.animation:
-        await update.effective_message.reply_text(
-            f"Gif ID:\n<code>{msg.reply_to_message.animation.file_id}</code>",
-            parse_mode=ParseMode.HTML,
-        )
-    else:
-        await update.effective_message.reply_text("Please reply to a gif to get its ID.")
-
-
 @kigcmd(command='info')
 @rate_limit(40, 60)
 async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery no-metrics
@@ -135,7 +123,8 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
     message = update.effective_message
     chat = update.effective_chat
 
-    if user_id := extract_user(update.effective_message, args):
+    user_id = await extract_user(update.effective_message, args)  # <-- await here
+    if user_id:
         user = await bot.get_chat(user_id)
     elif not message.reply_to_message and not args:
         user = message.sender_chat if message.sender_chat is not None else message.from_user
@@ -201,7 +190,6 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
         await message.reply_text(
             text, parse_mode=ParseMode.HTML, disable_web_page_preview=True
         )
-
 
 async def get_user_info(chat: Chat, user: User) -> str:
     from telegram.constants import ChatMemberStatus

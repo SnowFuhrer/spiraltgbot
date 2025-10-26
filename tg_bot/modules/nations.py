@@ -43,7 +43,7 @@ async def addsudo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user = update.effective_user
     chat = update.effective_chat
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user_member = await bot.get_chat(user_id)
     rt = ""
 
@@ -99,7 +99,7 @@ async def addsupport(
     user = update.effective_user
     chat = update.effective_chat
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user_member = await bot.get_chat(user_id)
     rt = ""
 
@@ -148,7 +148,7 @@ async def addwhitelist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> st
     user = update.effective_user
     chat = update.effective_chat
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user_member = await bot.get_chat(user_id)
     rt = ""
 
@@ -197,7 +197,7 @@ async def addsardegna(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str
     user = update.effective_user
     chat = update.effective_chat
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user_member = await bot.get_chat(user_id)
     rt = ""
 
@@ -250,7 +250,7 @@ async def removesudo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user = update.effective_user
     chat = update.effective_chat
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user_member = await bot.get_chat(user_id)
 
     reply = check_user_id(user_id, bot)
@@ -288,7 +288,7 @@ async def removesupport(update: Update, context: ContextTypes.DEFAULT_TYPE) -> s
     user = update.effective_user
     chat = update.effective_chat
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user_member = await bot.get_chat(user_id)
 
     reply = check_user_id(user_id, bot)
@@ -326,7 +326,7 @@ async def removewhitelist(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user = update.effective_user
     chat = update.effective_chat
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user_member = await bot.get_chat(user_id)
 
     reply = check_user_id(user_id, bot)
@@ -363,7 +363,7 @@ async def removesardegna(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     user = update.effective_user
     chat = update.effective_chat
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     user_member = await bot.get_chat(user_id)
 
     reply = check_user_id(user_id, bot)

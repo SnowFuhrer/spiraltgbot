@@ -327,7 +327,7 @@ async def user_join_fed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fed_id = sql.get_fed_id(chat.id)
 
     if is_user_fed_owner(fed_id, user.id) or user.id in SUDO_USERS:
-        user_id = extract_user(msg, args)
+        user_id = await extract_user(msg, args)
         if user_id:
             user = await context.bot.get_chat(user_id)
         elif not msg.reply_to_message and not args:
@@ -392,7 +392,7 @@ async def user_demote_fed(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if is_user_fed_owner(fed_id, user.id):
         msg = update.effective_message
-        user_id = extract_user(msg, args)
+        user_id = await extract_user(msg, args)
         if user_id:
             user = await context.bot.get_chat(user_id)
         elif not msg.reply_to_message and not args:
@@ -559,7 +559,7 @@ async def fed_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # source
 
     message = update.effective_message
 
-    user_id, reason = extract_unt_fedban(message, args)
+    user_id, reason = await extract_unt_fedban(message, args)
 
     fban, fbanreason, fbantime = sql.get_fban_user(fed_id, user_id)
 
@@ -930,7 +930,7 @@ async def unfban(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text("Only federation admins can do this!")
         return
 
-    user_id = extract_user_fban(message, args)
+    user_id = await extract_user_fban(message, args)
     if not user_id:
         await message.reply_text("You do not seem to be referring to a user.")
         return
@@ -1765,9 +1765,9 @@ async def fed_stat_user(update: Update, context: ContextTypes.DEFAULT_TYPE):  # 
         if args[0].isdigit():
             user_id = args[0]
         else:
-            user_id = extract_user(msg, args)
+            user_id = await extract_user(msg, args)
     else:
-        user_id = extract_user(msg, args)
+        user_id = await extract_user(msg, args)
 
     if user_id:
         if len(args) == 2 and args[0].isdigit():

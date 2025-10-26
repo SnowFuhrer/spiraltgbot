@@ -26,7 +26,7 @@ async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args or []
     user = update.effective_user
 
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     if not user_id:
         await message.reply_text(
             "I don't know who you're talking about, you're going to need to specify a user!"
@@ -77,7 +77,7 @@ async def disapprove(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args or []
     user = update.effective_user
 
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     if not user_id:
         await message.reply_text(
             "I don't know who you're talking about, you're going to need to specify a user!"
@@ -135,7 +135,7 @@ async def approval(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     args = context.args or []
 
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     if not user_id:
         await message.reply_text(
             "I don't know who you're talking about, you're going to need to specify a user!"

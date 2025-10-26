@@ -71,7 +71,7 @@ async def gban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
     user = update.effective_user
     chat = update.effective_chat
 
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
 
     if not user_id:
         await message.reply_text(
@@ -242,7 +242,7 @@ async def ungban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcer
     user = update.effective_user
     chat = update.effective_chat
 
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
 
     if not user_id:
         await message.reply_text(

@@ -1,5 +1,3 @@
-# Module to blacklist users and prevent them from using commands by @TheRealPhoenix
-
 import tg_bot.modules.sql.blacklistusers_sql as sql
 from tg_bot import (
     DEV_USERS,
@@ -25,37 +23,41 @@ BLACKLISTWHITELIST = (
 )
 BLABLEUSERS = [OWNER_ID] + DEV_USERS
 
-@kigcmd(command='ignore', pass_args=True)
+
+@kigcmd(command="ignore")
 @dev_plus
 @gloggable
 @rate_limit(40, 60)
-def bl_user(update: Update, context: CallbackContext) -> str:
+async def bl_user(update: Update, context: CallbackContext) -> str:
     message = update.effective_message
     user = update.effective_user
     bot, args = context.bot, context.args
-    user_id, reason = extract_user_and_text(message, args)
+
+    user_id, reason = await extract_user_and_text(message, args)
 
     if not user_id:
-        message.reply_text("I doubt that's a user.")
+        await message.reply_text("I doubt that's a user.")
         return ""
 
     if user_id == bot.id:
-        message.reply_text("How am I supposed to do my work if I am ignoring myself?")
+        await message.reply_text("How am I supposed to do my work if I am ignoring myself?")
         return ""
 
     if user_id in BLACKLISTWHITELIST:
-        message.reply_text("No!\nNoticing Nations is my job.")
+        await message.reply_text("No!\nNoticing Nations is my job.")
         return ""
 
     try:
-        target_user = bot.get_chat(user_id)
+        target_user = await bot.get_chat(user_id)
     except BadRequest as excp:
-        if excp.message != 'User not found':
+        if excp.message not in ("User not found", "Chat not found"):
             raise
-        message.reply_text("I can't seem to find this user.")
-        return ''
+        await message.reply_text("I can't seem to find this user.")
+        return ""
+
     sql.blacklist_user(user_id, reason)
-    message.reply_text("I shall ignore the existence of this user!")
+    await message.reply_text("I shall ignore the existence of this user!")
+
     log_message = (
         f"#BLACKLIST\n"
         f"<b>Admin:</b> {mention_html(user.id, user.first_name)}\n"
@@ -66,71 +68,75 @@ def bl_user(update: Update, context: CallbackContext) -> str:
 
     return log_message
 
-@kigcmd(command='notice', pass_args=True)
+
+@kigcmd(command="notice")
 @dev_plus
 @gloggable
 @rate_limit(40, 60)
-def unbl_user(update: Update, context: CallbackContext) -> str:
+async def unbl_user(update: Update, context: CallbackContext) -> str:
     message = update.effective_message
     user = update.effective_user
     bot, args = context.bot, context.args
-    user_id = extract_user(message, args)
+
+    user_id = await extract_user(message, args)
 
     if not user_id:
-        message.reply_text("I doubt that's a user.")
+        await message.reply_text("I doubt that's a user.")
         return ""
 
     if user_id == bot.id:
-        message.reply_text("I always notice myself.")
+        await message.reply_text("I always notice myself.")
         return ""
 
     try:
-        target_user = bot.get_chat(user_id)
+        target_user = await bot.get_chat(user_id)
     except BadRequest as excp:
-        if excp.message == "User not found":
-            message.reply_text("I can't seem to find this user.")
+        if excp.message in ("User not found", "Chat not found"):
+            await message.reply_text("I can't seem to find this user.")
             return ""
         else:
             raise
 
     if sql.is_user_blacklisted(user_id):
-
         sql.unblacklist_user(user_id)
-        message.reply_text("*notices user*")
+        await message.reply_text("*notices user*")
         log_message = (
             f"#UNBLACKLIST\n"
             f"<b>Admin:</b> {mention_html(user.id, user.first_name)}\n"
             f"<b>User:</b> {mention_html(target_user.id, target_user.first_name)}"
         )
-
         return log_message
-
     else:
-        message.reply_text("I am not ignoring them at all though!")
+        await message.reply_text("I am not ignoring them at all though!")
         return ""
 
-@kigcmd(command='ignoredlist', pass_args=True)
+
+@kigcmd(command="ignoredlist")
 @dev_plus
 @rate_limit(40, 60)
-def bl_users(update: Update, context: CallbackContext):
+async def bl_users(update: Update, context: CallbackContext):
     users = []
     bot = context.bot
-    for each_user in sql.BLACKLIST_USERS:
-        user = bot.get_chat(each_user)
-        reason = sql.get_reason(each_user)
 
+    for each_user in sql.BLACKLIST_USERS:
+        try:
+            u = await bot.get_chat(each_user)
+        except BadRequest:
+            # Skip entries the bot can’t resolve anymore
+            continue
+
+        reason = sql.get_reason(each_user)
         if reason:
-            users.append(f"• {mention_html(user.id, user.first_name)} :- {reason}")
+            users.append(f"• {mention_html(u.id, u.first_name)} :- {reason}")
         else:
-            users.append(f"• {mention_html(user.id, user.first_name)}")
+            users.append(f"• {mention_html(u.id, u.first_name)}")
 
     message = "<b>Blacklisted Users</b>\n"
     message += "\n".join(users) if users else "Noone is being ignored as of yet."
-    update.effective_message.reply_text(message, parse_mode=ParseMode.HTML)
+    await update.effective_message.reply_text(message, parse_mode=ParseMode.HTML)
 
 
 def __user_info__(user_id):
-
     if user_id in (777000, 1087968824):
         return ""
 
@@ -154,5 +160,6 @@ def __user_info__(user_id):
         text = text.format("No")
 
     return text
+
 
 __mod_name__ = "Blacklisting Users"

@@ -68,7 +68,7 @@ async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[st
             await message.reply_text("Failed to ban channel")
         return
 
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
 
     if not user_id:
         await message.reply_text("I doubt that's a user.")
@@ -156,7 +156,7 @@ async def temp_ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     reason = ""
     bot, args = context.bot, context.args
 
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
 
     if not user_id:
         await message.reply_text("I doubt that's a user.")
@@ -242,7 +242,7 @@ async def kick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     message = update.effective_message
     log_message = ""
     bot, args = context.bot, context.args
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
 
     if not user_id:
         await message.reply_text("I doubt that's a user.")
@@ -336,7 +336,7 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[
         else:
             await message.reply_text("Failed to unban channel")
         return
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
     if not user_id:
         await message.reply_text("I doubt that's a user.")
         return log_message

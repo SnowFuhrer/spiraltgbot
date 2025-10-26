@@ -57,7 +57,7 @@ async def mute(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user = update.effective_user
     message = update.effective_message
 
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
     reply = await check_user(user_id, bot, update)
 
     if reply:
@@ -109,7 +109,7 @@ async def unmute(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user = update.effective_user
     message = update.effective_message
 
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
     if not user_id:
         await message.reply_text(
             "You'll need to either give me a username to unmute, or reply to someone to be unmuted."
@@ -176,7 +176,7 @@ async def temp_mute(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user = update.effective_user
     message = update.effective_message
 
-    user_id, reason = extract_user_and_text(message, args)
+    user_id, reason = await extract_user_and_text(message, args)
     reply = await check_user(user_id, bot, update)
 
     if reply:
