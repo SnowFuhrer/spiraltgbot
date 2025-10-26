@@ -404,8 +404,8 @@ Report abuse or ask us more on these at [Spiral Support](https://t.me/enraptured
 """
 
 
-def send_nations(update):
-    update.effective_message.reply_text(
+async def send_nations(update):
+    await update.effective_message.reply_text(
         nations, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True
     )
 

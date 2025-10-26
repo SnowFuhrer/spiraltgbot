@@ -86,7 +86,7 @@ async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[st
         await message.reply_text("Oh yeah, ban myself, noob!")
         return log_message
 
-    if is_user_ban_protected(update, user_id, member) and user.id not in DEV_USERS:
+    if await is_user_ban_protected(update, user_id, member) and user.id not in DEV_USERS:
         if user_id == OWNER_ID:
             await message.reply_text("I'd never ban my owner.")
         elif user_id in DEV_USERS:
@@ -173,7 +173,7 @@ async def temp_ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         await message.reply_text("I'm not gonna BAN myself, are you crazy?")
         return log_message
 
-    if is_user_ban_protected(update, user_id, member):
+    if await is_user_ban_protected(update, user_id, member):
         await message.reply_text("I don't feel like it.")
         return log_message
 
@@ -259,7 +259,7 @@ async def kick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         await message.reply_text("Yeahhh I'm not gonna do that.")
         return log_message
 
-    if is_user_ban_protected(update, user_id, member):
+    if await is_user_ban_protected(update, user_id, member):
         await message.reply_text("I really wish I could kick this user....")
         return log_message
 
@@ -293,7 +293,7 @@ async def kick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 @rate_limit(40, 60)
 async def kickme(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_message.from_user.id
-    if is_user_admin(update, user_id):
+    if await is_user_admin(update, user_id):
         await update.effective_message.reply_text("I wish I could... but you're an admin.")
         return
 
@@ -352,7 +352,7 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[
         await message.reply_text("How would I unban myself if I wasn't here...?")
         return log_message
 
-    if is_user_in_chat(chat, user_id):
+    if await is_user_in_chat(chat, user_id):
         await message.reply_text("Isn't this person already here??")
         return log_message
 
@@ -408,7 +408,7 @@ async def selfunban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optio
         else:
             raise
 
-    if is_user_in_chat(chat, user.id):
+    if await is_user_in_chat(chat, user.id):
         await message.reply_text("Aren't you already in the chat??")
         return
 
