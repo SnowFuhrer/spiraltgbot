@@ -41,32 +41,73 @@ def is_message_forwarded(msg) -> bool:
         return True
     return False
 
-async def get_user_id(username):
-    # ensure valid userid
-    if not username or len(username) <= 5:
-        return None
 
+async def get_user_id(username):
+    # Normalize
+    if not username:
+        return None
     if username.startswith("@"):
         username = username[1:]
+    # Telegram usernames are >= 5 chars
+    if len(username) < 5:
+        return None
 
     users = sql.get_userid_by_name(username)
-
     if not users:
         return None
 
-    elif len(users) == 1:
-        return users[0].user_id
-
-    else:
-        for user_obj in users:
+    def to_uid(u):
+        # Accept several shapes: int, row.user_id, row.id, tuple/list[0], dict
+        if isinstance(u, int):
+            return u
+        for attr in ("user_id", "id"):
+            v = getattr(u, attr, None)
+            if v is not None:
+                try:
+                    return int(v)
+                except (TypeError, ValueError):
+                    pass
+        if isinstance(u, (tuple, list)) and u:
             try:
-                userdat = await dispatcher.bot.get_chat(user_obj.user_id)
-                if userdat.username == username:
-                    return userdat.id
+                return int(u[0])
+            except (TypeError, ValueError):
+                pass
+        if isinstance(u, dict):
+            for k in ("user_id", "id"):
+                if k in u:
+                    try:
+                        return int(u[k])
+                    except (TypeError, ValueError):
+                        pass
+        # Last resort: stringified int
+        if isinstance(u, str) and u.lstrip("-").isdigit():
+            return int(u)
+        return None
 
-            except BadRequest as excp:
-                if excp.message != "Chat not found":
-                    log.exception("Error extracting user ID")
+    # Single match fast path
+    if len(users) == 1:
+        return to_uid(users[0])
+
+    # Multiple candidates; verify via Bot API
+    wanted = username.lower()
+    for candidate in users:
+        uid = to_uid(candidate)
+        if uid is None:
+            continue
+        try:
+            userdat = await dispatcher.bot.get_chat(uid)
+            if (userdat.username or "").lower() == wanted:
+                return userdat.id
+        except BadRequest as excp:
+            # ignore "not found" variants; log other errors
+            if "not found" not in (excp.message or "").lower():
+                log.exception("Error extracting user ID for %s: %s", username, excp)
+
+    # Fallback: return first valid uid if none validated
+    for candidate in users:
+        uid = to_uid(candidate)
+        if uid is not None:
+            return uid
 
     return None
 
@@ -121,9 +162,9 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-def welcomeFilter(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def welcomeFilter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type not in ["group", "supergroup"]:
-        return
+         return
     if update.chat_member and update.chat_member.new_chat_member:
         nm = update.chat_member.new_chat_member
         om = update.chat_member.old_chat_member
@@ -140,7 +181,7 @@ def welcomeFilter(update: Update, context: ContextTypes.DEFAULT_TYPE):
         (ChatMemberStatus.LEFT, ChatMemberStatus.ADMINISTRATOR),
         (ChatMemberStatus.LEFT, ChatMemberStatus.OWNER),
     ]:
-        return log_user(update, context)
+        return await log_user(update, context)
 
 
 @rate_limit(30, 60)
