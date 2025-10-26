@@ -35,7 +35,7 @@ async def promote(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optiona
     chat = update.effective_chat
     user = update.effective_user
 
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     if not user_id:
         await message.reply_text(
             "You don't seem to be referring to a user or the ID specified is incorrect.."
@@ -114,7 +114,7 @@ async def demote(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional
     message = update.effective_message
     user = update.effective_user
 
-    user_id = extract_user(message, args)
+    user_id = await extract_user(message, args)
     if not user_id:
         await message.reply_text(
             "You don't seem to be referring to a user or the ID specified is incorrect.."
