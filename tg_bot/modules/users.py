@@ -28,18 +28,32 @@ except AttributeError:
     # Older PTB/Bot API
     BAN_STATUS = ChatMemberStatus.KICKED
 
+
 def is_message_forwarded(msg) -> bool:
-    # New-style (Bot API >= 7.5)
-    if getattr(msg, "forward_origin", None) is not None:
-        return True
-    # Legacy fields (older Bot API/PTB)
-    if getattr(msg, "forward_from", None) is not None:
-        return True
-    if getattr(msg, "forward_from_chat", None) is not None:
-        return True
-    if getattr(msg, "is_automatic_forward", False):
-        return True
-    return False
+    # Clean: only Bot API 7.5+ style
+    return getattr(msg, "forward_origin", None) is not None
+
+
+def _extract_forward_origin(msg):
+    """
+    Returns (id, username) of the forward origin using forward_origin only.
+    - User origin: (user.id, user.username)
+    - Chat/channel origin: (chat.id, chat.username)
+    - Hidden user/unknown origin: (None, None)
+    """
+    fo = getattr(msg, "forward_origin", None)
+    if fo is None:
+        return None, None
+
+    user = getattr(fo, "sender_user", None)
+    if user is not None:
+        return getattr(user, "id", None), getattr(user, "username", None)
+
+    chat = getattr(fo, "sender_chat", None)
+    if chat is not None:
+        return getattr(chat, "id", None), getattr(chat, "username", None)
+
+    return None, None
 
 
 async def get_user_id(username):
@@ -57,7 +71,7 @@ async def get_user_id(username):
         return None
 
     def to_uid(u):
-        # Accept several shapes: int, row.user_id, row.id, tuple/list[0], dict
+        # Accept several shapes: int, row.user_id, row.id, tuple/list[0], dict, str-int
         if isinstance(u, int):
             return u
         for attr in ("user_id", "id"):
@@ -79,7 +93,6 @@ async def get_user_id(username):
                         return int(u[k])
                     except (TypeError, ValueError):
                         pass
-        # Last resort: stringified int
         if isinstance(u, str) and u.lstrip("-").isdigit():
             return int(u)
         return None
@@ -99,11 +112,10 @@ async def get_user_id(username):
             if (userdat.username or "").lower() == wanted:
                 return userdat.id
         except BadRequest as excp:
-            # ignore "not found" variants; log other errors
             if "not found" not in (excp.message or "").lower():
                 log.exception("Error extracting user ID for %s: %s", username, excp)
 
-    # Fallback: return first valid uid if none validated
+    # Fallback: first valid uid if none validated
     for candidate in users:
         uid = to_uid(candidate)
         if uid is not None:
@@ -164,7 +176,7 @@ async def broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def welcomeFilter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type not in ["group", "supergroup"]:
-         return
+        return
     if update.chat_member and update.chat_member.new_chat_member:
         nm = update.chat_member.new_chat_member
         om = update.chat_member.old_chat_member
@@ -205,17 +217,16 @@ async def log_user(update: Update, _: ContextTypes.DEFAULT_TYPE):
             chat.title,
         )
 
-        if is_message_forwarded(msg):
-            sql.update_user(
-                rep.forward_from.id,
-                rep.forward_from.username,
-            )
+        fwd_id, fwd_username = _extract_forward_origin(rep)
+        if fwd_id is not None:
+            sql.update_user(fwd_id, fwd_username)
 
         if rep.entities:
             for entity in rep.entities:
                 if entity.type in ["text_mention", "mention"]:
                     with contextlib.suppress(AttributeError):
                         sql.update_user(entity.user.id, entity.user.username)
+
         if rep.sender_chat and not rep.is_automatic_forward:
             sql.update_user(
                 rep.sender_chat.id,
@@ -224,14 +235,16 @@ async def log_user(update: Update, _: ContextTypes.DEFAULT_TYPE):
                 chat.title,
             )
 
-    if is_message_forwarded(msg):
-        sql.update_user(msg.forward_from.id, msg.forward_from.username)
+    fwd_id, fwd_username = _extract_forward_origin(msg)
+    if fwd_id is not None:
+        sql.update_user(fwd_id, fwd_username)
 
     if msg.entities:
         for entity in msg.entities:
             if entity.type in ["text_mention", "mention"]:
                 with contextlib.suppress(AttributeError):
                     sql.update_user(entity.user.id, entity.user.username)
+
     if msg.sender_chat and not msg.is_automatic_forward:
         sql.update_user(msg.sender_chat.id, msg.sender_chat.username, chat.id, chat.title)
 

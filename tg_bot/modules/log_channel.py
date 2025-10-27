@@ -119,48 +119,61 @@ if is_module_loaded(FILENAME):
         else:
             await message.reply_text("No log channel has been set for this group!")
 
-    @kigcmd(command='setlog')
-    @user_admin(AdminPerms.CAN_CHANGE_INFO)
-    @rate_limit(40, 60)
-    async def setlog(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        bot = context.bot
-        message = update.effective_message
-        chat = update.effective_chat
-        if chat.type == ChatType.CHANNEL:
-            await message.reply_text(
-                "Now, forward the /setlog to the group you want to tie this channel to!"
-            )
+@kigcmd(command='setlog')
+@user_admin(AdminPerms.CAN_CHANGE_INFO)
+@rate_limit(40, 60)
+async def setlog(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    bot = context.bot
+    message = update.effective_message
+    chat = update.effective_chat
 
-        elif message.forward_from_chat:
-            sql.set_chat_log_channel(chat.id, message.forward_from_chat.id)
-            try:
-                await message.delete()
-            except BadRequest as excp:
-                if excp.message != 'Message to delete not found':
-                    log.exception(
-                        'Error deleting message in log channel. Should work anyway though.'
-                    )
+    # If run inside the channel itself, instruct to forward to the target group
+    if chat.type == ChatType.CHANNEL:
+        await message.reply_text(
+            "Now, forward the /setlog to the group you want to tie this channel to!"
+        )
+        return
 
-            try:
-                await bot.send_message(
-                    message.forward_from_chat.id,
-                    f"This channel has been set as the log channel for {chat.title or chat.first_name}.",
+    # Expect a forwarded /setlog message from the desired channel
+    fo = getattr(message, "forward_origin", None)
+    sender_chat = getattr(fo, "sender_chat", None) if fo else None
+
+    if sender_chat and sender_chat.type == ChatType.CHANNEL:
+        sql.set_chat_log_channel(chat.id, sender_chat.id)
+
+        # Try to delete the setup message in the group (optional)
+        try:
+            await message.delete()
+        except BadRequest as excp:
+            if excp.message != "Message to delete not found":
+                log.exception(
+                    "Error deleting message in log channel. Should work anyway though."
                 )
-            except Forbidden as excp:
-                if "bot is not a member of the channel chat" in excp.message:
-                    await bot.send_message(chat.id, "Successfully set log channel!")
-                else:
-                    log.exception("ERROR in setting the log channel.")
 
+        # Notify the channel (if the bot is a member) and the group
+        try:
+            await bot.send_message(
+                sender_chat.id,
+                f"This channel has been set as the log channel for {chat.title or chat.first_name}.",
+            )
+        except Forbidden as excp:
+            # Bot not in channel: still confirm in the group
+            if "bot is not a member" in (excp.message or "").lower():
+                await bot.send_message(chat.id, "Successfully set log channel!")
+            else:
+                log.exception("ERROR in setting the log channel.")
+        else:
             await bot.send_message(chat.id, "Successfully set log channel!")
 
-        else:
-            await message.reply_text(
-                "The steps to set a log channel are:\n"
-                " - add bot to the desired channel\n"
-                " - send /setlog to the channel\n"
-                " - forward the /setlog to the group\n"
-            )
+        return
+
+    # Fallback: wrong or missing forward
+    await message.reply_text(
+        "The steps to set a log channel are:\n"
+        " - add bot to the desired channel\n"
+        " - send /setlog to the channel\n"
+        " - forward the /setlog to the group\n"
+    )
 
     @kigcmd(command='unsetlog')
     @user_admin(AdminPerms.CAN_CHANGE_INFO)

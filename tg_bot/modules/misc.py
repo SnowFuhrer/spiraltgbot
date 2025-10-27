@@ -88,23 +88,57 @@ async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat = update.effective_chat
     msg = update.effective_message
 
-    user_id = await extract_user(msg, args)   # <-- await here
+    user_id = await extract_user(msg, args)
+
     if user_id:
-        if msg.reply_to_message and msg.reply_to_message.forward_from:
-            user1 = message.reply_to_message.from_user
-            user2 = message.reply_to_message.forward_from
+        # If replying to a forwarded message, show both the origin and the forwarder
+        if msg.reply_to_message and getattr(msg.reply_to_message, "forward_origin", None):
+            fwd = msg.reply_to_message
+            fo = fwd.forward_origin
+
+            # Forwarder (the sender in this chat)
+            if fwd.from_user:
+                forwarder_name = html.escape(fwd.from_user.first_name)
+                forwarder_id = fwd.from_user.id
+            elif fwd.sender_chat:
+                forwarder_name = html.escape(fwd.sender_chat.title or fwd.sender_chat.username or "Unknown chat")
+                forwarder_id = fwd.sender_chat.id
+            else:
+                forwarder_name = "Unknown"
+                forwarder_id = "N/A"
+
+            # Origin of the forwarded message (user/chat/channel)
+            origin_name = "Hidden user"
+            origin_id = "N/A"
+            if getattr(fo, "sender_user", None):
+                origin_name = html.escape(fo.sender_user.first_name)
+                origin_id = fo.sender_user.id
+            elif getattr(fo, "sender_chat", None):
+                origin_name = html.escape(fo.sender_chat.title or fo.sender_chat.username or "Unknown chat")
+                origin_id = fo.sender_chat.id
+            elif getattr(fo, "chat", None):  # MessageOriginChannel
+                origin_name = html.escape(fo.chat.title or fo.chat.username or "Unknown channel")
+                origin_id = fo.chat.id
+            # MessageOriginHiddenUser exposes only sender_user_name (no ID); keep N/A for ID
+
             await msg.reply_text(
-                f"<b>Telegram ID:</b>,"
-                f"• {html.escape(user2.first_name)} - <code>{user2.id}</code>.\n"
-                f"• {html.escape(user1.first_name)} - <code>{user1.id}</code>.",
+                f"<b>Telegram ID:</b>\n"
+                f"• {origin_name} - <code>{origin_id}</code>.\n"
+                f"• {forwarder_name} - <code>{forwarder_id}</code>.",
                 parse_mode=ParseMode.HTML,
             )
         else:
             user = await bot.get_chat(user_id)
+            name = (
+                html.escape(getattr(user, "first_name", None) or "")
+                or html.escape(getattr(user, "title", None) or "")
+                or (f"@{user.username}" if getattr(user, "username", None) else "User")
+            )
             await msg.reply_text(
-                f"{html.escape(user.first_name)}'s id is <code>{user.id}</code>.",
+                f"{name}'s id is <code>{user.id}</code>.",
                 parse_mode=ParseMode.HTML,
             )
+
     elif chat.type == "private":
         await msg.reply_text(
             f"Your id is <code>{chat.id}</code>.", parse_mode=ParseMode.HTML
@@ -113,7 +147,6 @@ async def get_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.reply_text(
             f"This group's id is <code>{chat.id}</code>.", parse_mode=ParseMode.HTML
         )
-
 
 @kigcmd(command='info')
 @rate_limit(40, 60)
