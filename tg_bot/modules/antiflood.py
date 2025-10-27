@@ -31,7 +31,7 @@ from tg_bot.modules.connection import connected
 from tg_bot.modules.helper_funcs.alternate import send_message
 from tg_bot.modules.helper_funcs.decorators import kigcmd, kigmsg, kigcallback, rate_limit
 
-from ..modules.helper_funcs.anonymous import user_admin, AdminPerms
+from tg_bot.modules.helper_funcs.anonymous import user_admin, AdminPerms
 
 FLOOD_GROUP = -5
 
@@ -144,12 +144,19 @@ async def flood_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = match.group(1)
         chat_id = update.effective_chat.id
         try:
+            # PTB 22+: granular media permissions only (can_send_media_messages removed)
             await bot.restrict_chat_member(
                 chat_id,
                 int(user_id),
                 permissions=ChatPermissions(
                     can_send_messages=True,
-                    can_send_media_messages=True,
+                    can_send_audios=True,
+                    can_send_documents=True,
+                    can_send_photos=True,
+                    can_send_videos=True,
+                    can_send_video_notes=True,
+                    can_send_voice_notes=True,
+                    can_send_polls=True,
                     can_send_other_messages=True,
                     can_add_web_page_previews=True,
                 ),
@@ -241,21 +248,22 @@ async def set_flood(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str: 
                         html.escape(chat_name),
                         mention_html(user.id, user.first_name),
                         amount,
-                    )
+                    ),
                 )
 
         else:
             await message.reply_text("Invalid argument please use a number, 'off' or 'no'")
     else:
         await message.reply_text(
-            "Use `/setflood number` to enable anti-flood.\nOr use `/setflood off` to disable antiflood!.",
-            parse_mode=ParseMode.MARKDOWN,
+            "Use <code>/setflood number</code> to enable antiflood.\n"
+            "Or use <code>/setflood off</code> to disable antiflood!.",
+            parse_mode=ParseMode.HTML,
         )
     return ""
 
 
 @kigcmd(command="flood", filters=filters.ChatType.GROUPS)
-@user_admin
+@user_admin(AdminPerms.CAN_CHANGE_INFO)
 @connection_status
 async def flood(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat: Optional[Chat] = update.effective_chat
@@ -263,6 +271,8 @@ async def flood(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
 
     conn = connected(context.bot, update, chat, user.id, need_admin=False)
+    if inspect.isawaitable(conn):
+        conn = await conn
     if conn:
         chat_id = conn
         chat_obj = await context.bot.get_chat(conn)
@@ -303,6 +313,8 @@ async def set_flood_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):  #
     args = context.args or []
 
     conn = connected(context.bot, update, chat, user.id, need_admin=True)
+    if inspect.isawaitable(conn):
+        conn = await conn
     if conn:
         chat = await context.bot.get_chat(conn)
         chat_id = conn
@@ -332,10 +344,11 @@ async def set_flood_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):  #
             if len(args) == 1:
                 teks = (
                     "It looks like you tried to set time value for antiflood but you didn't specified time; "
-                    "Try, `/setfloodmode tban <timevalue>`.\n"
-                    "Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."
+                    "Try, <code>/setfloodmode tban &lt;timevalue&gt;</code>.\n"
+                    "Examples of time value: <code>4m</code> = 4 minutes, <code>3h</code> = 3 hours, "
+                    "<code>6d</code> = 6 days, <code>5w</code> = 5 weeks."
                 )
-                await send_message(update.effective_message, teks, parse_mode=ParseMode.MARKDOWN)
+                await send_message(update.effective_message, teks, parse_mode=ParseMode.HTML)
                 return ""
             settypeflood = f"tban for {args[1]}"
             sql.set_flood_strength(chat_id, 4, str(args[1]))
@@ -343,10 +356,11 @@ async def set_flood_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):  #
             if len(args) == 1:
                 teks = (
                     "It looks like you tried to set time value for antiflood but you didn't specified time; "
-                    "Try, `/setfloodmode tmute <timevalue>`.\n"
-                    "Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."
+                    "Try, <code>/setfloodmode tmute &lt;timevalue&gt;</code>.\n"
+                    "Examples of time value: <code>4m</code> = 4 minutes, <code>3h</code> = 3 hours, "
+                    "<code>6d</code> = 6 days, <code>5w</code> = 5 weeks."
                 )
-                await send_message(update.effective_message, teks, parse_mode=ParseMode.MARKDOWN)
+                await send_message(update.effective_message, teks, parse_mode=ParseMode.HTML)
                 return ""
             settypeflood = f"tmute for {args[1]}"
             sql.set_flood_strength(chat_id, 5, str(args[1]))
@@ -403,9 +417,9 @@ def __migrate__(old_chat_id, new_chat_id):
 def __chat_settings__(chat_id, user_id):
     limit = sql.get_flood_limit(chat_id)
     if limit == 0:
-        return "Not enforcing to flood control."
+        return "Not enforcing flood control."
     else:
-        return "Antiflood has been set to`{}`.".format(limit)
+        return "Antiflood has been set to <code>{}</code>.".format(limit)
 
 
 from tg_bot.modules.language import gs
