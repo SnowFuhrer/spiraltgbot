@@ -33,7 +33,7 @@ kigconfig = parser["kigconfig"]
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        RotatingFileHandler("kigyo.log", maxBytes=1024 * 1024, backupCount=5),
+        RotatingFileHandler("spiral.log", maxBytes=1024 * 1024, backupCount=5),
         logging.StreamHandler(),
     ],
     level=logging.DEBUG if kigconfig.getboolean("IS_DEBUG", False) else logging.INFO,
@@ -48,13 +48,12 @@ logging.getLogger("ptbcontrib.postgres_persistence.postgrespersistence").setLeve
     logging.WARNING
 )
 
-log.info("[KIGYO] Spiral is starting. | Licensed under GPLv3.")
-log.info("[KIGYO] Not affiliated to Azur Lane or Yostar in any way whatsoever.")
-log.info("[KIGYO] Base project maintained by https://github.com/snowfuhrer")
+log.info("[Spiral] Spiral is starting. | Licensed under GPLv3.")
+log.info("[Spiral] Project maintained by https://github.com/snowfuhrer")
 
 # PTB 20+ requires >= 3.8
 if sys.version_info < (3, 8):
-    log.error("[KIGYO] You must use Python 3.8+ for PTB 20+. Bot quitting.")
+    log.error("[Spiral] You must use Python 3.8+ for PTB 20+. Bot quitting.")
     sys.exit(1)
 
 
