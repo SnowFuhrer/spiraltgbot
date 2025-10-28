@@ -67,7 +67,7 @@ async def speedtestxyz_callback(update: Update, context: ContextTypes.DEFAULT_TY
             )
             await update.effective_message.edit_text(replymsg, parse_mode=ParseMode.MARKDOWN)
     else:
-        await query.answer("You are not a part of Eagle Union.")
+        await query.answer("You are not a developer.")
         
 
 __mod_name__ = "SpeedTest"
