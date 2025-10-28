@@ -46,7 +46,7 @@ async def fmt_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     ),
                     InlineKeyboardButton(
                         text="Report Error",
-                        url="https://t.me/YorkTownEagleUnion",
+                        url="https://t.me/spiralsupport",
                     ),
                 ]
             ]

@@ -26,7 +26,7 @@ from tg_bot.modules.helper_funcs.decorators import kigcmd, rate_limit
 
 def check_user_id(user_id: int, bot: Bot) -> Optional[str]:
     if not user_id:
-        return "That...is a chat! baka ka omae?"
+        return "That...is a chat."
 
     elif user_id == bot.id:
         return "This does not work that way."
@@ -53,15 +53,15 @@ async def addsudo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         return ""
 
     if user_id in SUDO_USERS:
-        await message.reply_text("This member is already a Sudo user")
+        await message.reply_text("This member is already a sudo user")
         return ""
 
     if user_id in SUPPORT_USERS:
-        rt += "Requested Eagle Union to promote a Support user to Sudo."
+        rt += "Promoted a support user to sudo."
         SUPPORT_USERS.remove(user_id)
 
     if user_id in WHITELIST_USERS:
-        rt += "Requested Eagle Union to promote a Whitelist user to Sudo."
+        rt += "Promoted a whitelisted user to sudo."
         WHITELIST_USERS.remove(user_id)
 
     # will add or update their role
@@ -188,7 +188,7 @@ async def addwhitelist(update: Update, context: ContextTypes.DEFAULT_TYPE) -> st
     return log_message
 
 
-@kigcmd(command='addsardegna')
+@kigcmd(command='addswhitelist')
 @sudo_plus
 @gloggable
 @rate_limit(40, 60)
@@ -207,30 +207,30 @@ async def addsardegna(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str
         return ""
 
     if user_id in SUDO_USERS:
-        rt += "This member is a Sudo user, Demoting to Sardegna."
+        rt += "This member is a Sudo user, Demoting to whitelisted."
         SUDO_USERS.remove(user_id)
 
     if user_id in SUPPORT_USERS:
-        rt += "This user is already a Support user, Demoting to Sardegna."
+        rt += "This user is already a Support user, Demoting to whitelisted."
         SUPPORT_USERS.remove(user_id)
 
     if user_id in WHITELIST_USERS:
-        rt += "This user is already a Whitelist user, Demoting to Sardegna."
+        rt += "This user is already a pro user, Demoting to whitelisted."
         WHITELIST_USERS.remove(user_id)
 
     if user_id in SARDEGNA_USERS:
-        await message.reply_text("This user is already a Sardegna.")
+        await message.reply_text("This user is already a whitelisted user.")
         return ""
 
-    sql.set_royal_role(user_id, "sardegnas")
+    sql.set_royal_role(user_id, "whitelist")
     SARDEGNA_USERS.append(user_id)
 
     await update.effective_message.reply_text(
-        rt + f"\nSuccessfully promoted {user_member.first_name} to a Sardegna Nation!"
+        rt + f"\nSuccessfully promoted {user_member.first_name} to a whitelisted user!"
     )
 
     log_message = (
-        f"#SARDEGNA\n"
+        f"#WHITELIST\n"
         f"<b>Admin:</b> {mention_html(user.id, html.escape(user.first_name))} \n"
         f"<b>User:</b> {mention_html(user_member.id, html.escape(user_member.first_name))}"
     )
@@ -317,7 +317,7 @@ async def removesupport(update: Update, context: ContextTypes.DEFAULT_TYPE) -> s
         return ""
 
 
-@kigcmd(command='removewhitelist')
+@kigcmd(command='unpro')
 @sudo_plus
 @gloggable
 @rate_limit(40, 60)
@@ -350,11 +350,11 @@ async def removewhitelist(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         return log_message
     else:
-        await message.reply_text("This user is not a Whitelist user!")
+        await message.reply_text("This user is not a pro user!")
         return ""
 
 
-@kigcmd(command='removesardegna')
+@kigcmd(command='unwhitelist')
 @sudo_plus
 @gloggable
 @rate_limit(40, 60)
@@ -387,7 +387,7 @@ async def removesardegna(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         return log_message
     else:
-        await message.reply_text("This user is not a Sardegna Nation!")
+        await message.reply_text("This user is not a whitelisted user!")
         return ""
 
 # I added extra new lines
@@ -397,8 +397,8 @@ nations = """ Spiral has bot access levels we call as *"Nation Levels"*
 Owner has complete bot access, including bot adminship in chats Spiral is at.
 \n*Sudo* - Have super user access, can gban, manage admins lower than them and are admins in Spiral.
 \n*Support* - Have access to globally ban users across Spiral.
-\n*Gold* - Same as Silver but can unban themselves if banned.
-\n*Silver* - Cannot be banned, muted flood kicked but can be manually banned by admins.
+\n*Pro* - Same as whitelisted users but can unban themselves if banned.
+\n*Whitelisted* - Cannot be banned, muted flood kicked but can be manually banned by admins.
 \n*Disclaimer*: The Nation levels in Kigyō are there for troubleshooting, support, banning potential scammers.
 Report abuse or ask us more on these at [Spiral Support](https://t.me/enrapturedoverwatch_bot).
 """
@@ -414,7 +414,7 @@ async def send_nations(update):
 @rate_limit(40, 60)
 async def whitelistlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
-    reply = "<b>Known Neptunia Nations :</b>\n"
+    reply = "<b>Known whitelisted users :</b>\n"
     for each_user in WHITELIST_USERS:
         user_id = int(each_user)
         try:
@@ -425,12 +425,12 @@ async def whitelistlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
     await update.effective_message.reply_text(reply, parse_mode=ParseMode.HTML)
 
-@kigcmd(command='sardegnas')
+@kigcmd(command='pro')
 @whitelist_plus
 @rate_limit(40, 60)
 async def Sardegnalist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
-    reply = "<b>Known Sardegna Nations :</b>\n"
+    reply = "<b>Known pro users :</b>\n"
     for each_user in SARDEGNA_USERS:
         user_id = int(each_user)
         try:
@@ -445,7 +445,7 @@ async def Sardegnalist(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @rate_limit(40, 60)
 async def supportlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
-    reply = "<b>Known Sakura Nations :</b>\n"
+    reply = "<b>Known support users :</b>\n"
     for each_user in SUPPORT_USERS:
         user_id = int(each_user)
         try:
@@ -461,7 +461,7 @@ async def supportlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def sudolist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
     true_sudo = list(set(SUDO_USERS) - set(DEV_USERS))
-    reply = "<b>Known Royal Nations :</b>\n"
+    reply = "<b>Known sudo users :</b>\n"
     for each_user in true_sudo:
         user_id = int(each_user)
         try:
@@ -477,7 +477,7 @@ async def sudolist(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def devlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     bot = context.bot
     true_dev = list(set(DEV_USERS) - {OWNER_ID})
-    reply = "<b>Spiral Members :</b>\n"
+    reply = "<b>Spiral developers :</b>\n"
     for each_user in true_dev:
         user_id = int(each_user)
         try:

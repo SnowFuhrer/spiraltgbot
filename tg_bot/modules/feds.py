@@ -100,7 +100,7 @@ async def new_fed(update: Update, context: ContextTypes.DEFAULT_TYPE):
         x = sql.new_fed(user.id, fed_name, fed_id)
         if not x:
             await update.effective_message.reply_text(
-                "Can't federate! Report in @YorkTownEagleUnion if the problem persists."
+                "Can't federate! Report in @spiralsupport if the problem persists."
             )
             return
 
@@ -2296,7 +2296,7 @@ async def fed_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         text="Back",
                         callback_data=f"help_module({__mod_name__.lower()})",
                     ),
-                    InlineKeyboardButton(text="Report Error", url="https://t.me/YorkTownEagleUnion"),
+                    InlineKeyboardButton(text="Report Error", url="https://t.me/spiralsupport"),
                 ]
             ]
         ),

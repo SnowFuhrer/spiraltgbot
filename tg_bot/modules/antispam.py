@@ -227,7 +227,7 @@ async def gban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
             "#GBAN "
             "You have been marked as Malicious and as such have been banned from any future groups we manage."
             + (f"\n<b>Reason:</b> <code>{html.escape(reason)}</code>" if reason else "")
-            + f"\n<b>Appeal Chat:</b> @YorkTownEagleUnion",
+            + f"\n<b>Appeal Chat:</b> @spiralsupport",
             parse_mode=ParseMode.HTML,
         )
     except Exception:

@@ -117,7 +117,7 @@ async def import_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 mod.__import_data__(int(chat.id), data)
         except Exception:
             await msg.reply_text(
-                "An error occurred while recovering your data. The process failed. If you experience a problem with this, please take it to @YorkTownEagleUnion",
+                "An error occurred while recovering your data. The process failed. If you experience a problem with this, please take it to @spiralsupport",
             )
             LOGGER.exception(
                 "Import for the chat %s with the name %s failed.",

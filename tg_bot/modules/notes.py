@@ -237,7 +237,7 @@ async def get(update: Update, context: ContextTypes.DEFAULT_TYPE, notename, show
                 else:
                     await message.reply_text(
                         "This note could not be sent, as it is incorrectly formatted. Ask in "
-                        f"@YorkTownEagleUnion if you can't figure out why!"
+                        f"@spiralsupport if you can't figure out why!"
                     )
                     log.exception(
                         "Could not parse message #%s in chat %s", notename, str(note_chat_id)

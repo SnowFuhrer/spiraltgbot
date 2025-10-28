@@ -192,7 +192,7 @@ def whitelist_plus(func):
             return await func(update, context, *args, **kwargs)
         else:
             await update.effective_message.reply_text(
-                "You don't have access to use this.\nVisit @YorkTownEagleUnion"
+                "You don't have access to use this.\nVisit @spiralsupport"
             )
 
     return is_whitelist_plus_func
