@@ -1,18 +1,24 @@
-import contextlib
 import html
 import json
-from datetime import datetime
+import asyncio
+from functools import partial
 from platform import python_version
 from typing import List
 from uuid import uuid4
+from tg_bot.modules.songsearch import inline_songsearch_router
 
 import requests
-from telegram import InlineQueryResultArticle, InputTextMessageContent, Update, InlineKeyboardMarkup, \
-    InlineKeyboardButton
-from telegram import __version__
+from telegram import (
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    Update,
+    __version__ as TG_VER,
+)
 from telegram.constants import ParseMode
-from telegram.error import BadRequest
-from telegram.ext import CallbackContext
+from telegram.error import BadRequest, TelegramError
+from telegram.ext import ContextTypes
 from telegram.helpers import mention_html
 
 import tg_bot.modules.sql.users_sql as sql
@@ -23,217 +29,208 @@ from tg_bot import (
     DEV_USERS,
     SARDEGNA_USERS,
     WHITELIST_USERS,
-    # sw,
-    log
+    log,
 )
-from tg_bot.modules.helper_funcs.misc import article
 from tg_bot.modules.helper_funcs.decorators import kiginline, rate_limit
 
 
-def remove_prefix(text, prefix):
-    if text.startswith(prefix):
-        text = text.replace(prefix, "", 1)
-    return text
+def remove_prefix(text: str, prefix: str) -> str:
+    return text[len(prefix) :] if text.startswith(prefix) else text
+
 
 @kiginline()
 @rate_limit(40, 60)
-def inlinequery(update: Update, _) -> None:
-    """
-    Main InlineQueryHandler callback.
-    """
-    query = update.inline_query.query
-    user = update.effective_user
+async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = (update.inline_query.query or "").strip()
 
-    results: List = []
+    # Map commands to handlers
     inline_funcs = {
-        # ".spb": spb,
         ".info": inlineinfo,
         ".about": about,
-        ".anilist": media_query,
+        ".song": inline_songsearch_router,
+        ".songsearch": inline_songsearch_router,
+        ".hymn": inline_songsearch_router,
     }
 
-    if (f := query.split(" ", 1)[0]) in inline_funcs:
-        inline_funcs[f](remove_prefix(query, f).strip(), update, user)
-    else:
-        inline_help_dicts = [
-            # {
-            #    "title": "SpamProtection INFO",
-            #    "description": "Look up a person/bot/channel/chat on @Intellivoid SpamProtection API",
-            #    "message_text": "Click the button below to look up a person/bot/channel/chat on @Intellivoid SpamProtection API using "
-            #                    "username or telegram id",
-            #    "thumb_urL": "https://telegra.ph/file/3ce9045b1c7faf7123c67.jpg",
-            #    "keyboard": ".spb ",
-            #},
-            {
-                "title": "Account info on Spiral",
-                "description": "Look up a Telegram account in Spiral database",
-                "message_text": "Click the button below to look up a person in Spiral database using their Telegram ID",
-                "thumb_urL": "https://t.me/enrapturedoverwatch_bot",
-                "keyboard": ".info ",
-            },
-            {
-                "title": "About",
-                "description": "Know about Spiral",
-                "message_text": "Click the button below to look up a person in Spiral database using their Telegram ID",
-                "thumb_urL": "https://t.me/enrapturedoverwatch_bot",
-                "keyboard": ".about ",
-            },
-        ]
+    cmd = query.split(" ", 1)[0] if query else ""
+    if cmd in inline_funcs:
+        arg = remove_prefix(query, cmd).strip()
+        await inline_funcs[cmd](arg, update, context)
+        return
 
-        for ihelp in inline_help_dicts:
-            results.append(
-                article(
-                    title=ihelp["title"],
-                    description=ihelp["description"],
-                    message_text=ihelp["message_text"],
-                    thumb_url=ihelp["thumb_urL"],
-                    reply_markup=InlineKeyboardMarkup(
-                        [
-                            [
-                                InlineKeyboardButton(
-                                    text="Click Here",
-                                    switch_inline_query_current_chat=ihelp[
-                                        "keyboard"
-                                    ],
-                                )
-                            ]
-                        ]
-                    ),
-                )
+    # Help cards
+    help_cards = [
+        {
+            "title": "Account info on Spiral",
+            "description": "Look up a Telegram account in Spiral database",
+            "message_text": "Click the button below to look up a person in Spiral database using their Telegram ID",
+            "thumbnail_url": "https://telegra.ph/file/3ce9045b1c7faf7123c67.jpg",
+            "switch_text": ".info ",
+        },
+        {
+            "title": "About",
+            "description": "Know about Spiral",
+            "message_text": "Click below to see what Spiral is about",
+            "thumbnail_url": "https://telegra.ph/file/3ce9045b1c7faf7123c67.jpg",
+            "switch_text": ".about",
+        },
+    ]
+
+    results: List[InlineQueryResultArticle] = []
+    for card in help_cards:
+        kb = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        text="Click Here",
+                        switch_inline_query_current_chat=card["switch_text"],
+                    )
+                ]
+            ]
+        )
+        results.append(
+            InlineQueryResultArticle(
+                id=str(uuid4()),
+                title=card["title"],
+                description=card["description"],
+                input_message_content=InputTextMessageContent(
+                    card["message_text"],
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                ),
+                reply_markup=kb,
+                thumbnail_url=card["thumbnail_url"],  # renamed from thumb_url
             )
+        )
 
-        update.inline_query.answer(results, cache_time=5)
+    await update.inline_query.answer(results, cache_time=5)
 
 
-def inlineinfo(query: str, update: Update, context: CallbackContext) -> None:
-    """Handle the inline query."""
+async def inlineinfo(query: str, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     bot = context.bot
-    query = update.inline_query.query
-    log.info(query)
+    log.info(update.inline_query.query)
+
     user_id = update.effective_user.id
+    search = query or user_id
 
     try:
-        search = query.split(" ", 1)[1]
-    except IndexError:
-        search = user_id
+        target = await bot.get_chat(int(search))
+    except (BadRequest, ValueError, TelegramError):
+        target = await bot.get_chat(user_id)
 
-    try:
-        user = bot.get_chat(int(search))
-    except (BadRequest, ValueError):
-        user = bot.get_chat(user_id)
-
-    chat = update.effective_chat
-    sql.update_user(user.id, user.username)
+    # Track user
+    sql.update_user(target.id, target.username)
 
     text = (
         f"<b>Information:</b>\n"
-        f"• ID: <code>{user.id}</code>\n"
-        f"• First Name: {html.escape(user.first_name)}"
+        f"• ID: <code>{target.id}</code>\n"
+        f"• First Name: {html.escape(target.first_name or '')}"
     )
-
-    if user.last_name:
-        text += f"\n• Last Name: {html.escape(user.last_name)}"
-
-    if user.username:
-        text += f"\n• Username: @{html.escape(user.username)}"
-
-    text += f"\n• Permanent user link: {mention_html(user.id, 'link')}"
+    if target.last_name:
+        text += f"\n• Last Name: {html.escape(target.last_name)}"
+    if target.username:
+        text += f"\n• Username: @{html.escape(target.username)}"
+    text += f"\n• Permanent user link: {mention_html(target.id, 'link')}"
 
     nation_level_present = False
-
-    if user.id == OWNER_ID:
-        text += "\\n\\nThis person is my owner"
+    if target.id == OWNER_ID:
+        text += "\n\nThis person is my owner"
         nation_level_present = True
-    elif user.id in DEV_USERS:
-        text += "\\n\\nThis Person is a part of the developers"
+    elif target.id in DEV_USERS:
+        text += "\n\nThis person is part of the developers"
         nation_level_present = True
-    elif user.id in SUDO_USERS:
-        text += "\\n\\nThis person is a sudo user"
+    elif target.id in SUDO_USERS:
+        text += "\n\nThis person is a sudo user"
         nation_level_present = True
-    elif user.id in SUPPORT_USERS:
-        text += "\\n\\nThis person is a support user"
+    elif target.id in SUPPORT_USERS:
+        text += "\n\nThis person is a support user"
         nation_level_present = True
-    elif user.id in SARDEGNA_USERS:
-        text += "\\n\\nThe Nation level of this person is Sardegna"
+    elif target.id in SARDEGNA_USERS:
+        text += "\n\nThe Nation level of this person is Sardegna"
         nation_level_present = True
-    elif user.id in WHITELIST_USERS:
-        text += "\\n\\nThis person is whitelisted"
+    elif target.id in WHITELIST_USERS:
+        text += "\n\nThis person is whitelisted"
         nation_level_present = True
 
     if nation_level_present:
+        # Small help link for nations
         text += f' [<a href="https://t.me/{bot.username}?start=nations">?</a>]'
 
-    # with contextlib.suppress(Exception):
-    #     if spamwtc := sw.get_ban(int(user.id)):
-    #         text += "<b>\n\n• SpamWatched:\n</b> Yes"
-    #         text += f"\n• Reason: <pre>{spamwtc.reason}</pre>"
-    #         text += "\n• Appeal at @SpamWatchSupport"
-    #     else:
-    #         text += "<b>\n\n• SpamWatched:</b> No"
-    num_chats = sql.get_user_num_chats(user.id)
+    num_chats = sql.get_user_num_chats(target.id)
     text += f"\n• <b>Chat count</b>: <code>{num_chats}</code>"
 
-
-
-
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Report Error", url="https://t.me/enrapturedoverwatch_bot"), InlineKeyboardButton(text="Search again", switch_inline_query_current_chat=".info ",)]])
-
+    kb = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(text="Report Error", url="https://t.me/enrapturedoverwatch_bot"),
+                InlineKeyboardButton(text="Search again", switch_inline_query_current_chat=".info "),
+            ]
+        ]
+    )
 
     results = [
         InlineQueryResultArticle(
             id=str(uuid4()),
-            title=f"User info of {html.escape(user.first_name)}",
-            input_message_content=InputTextMessageContent(text, parse_mode=ParseMode.HTML,
-                                                          disable_web_page_preview=True),
-            reply_markup=kb
-        ),
+            title=f"User info of {html.escape(target.first_name or 'User')}",
+            input_message_content=InputTextMessageContent(
+                text, parse_mode=ParseMode.HTML, disable_web_page_preview=True
+            ),
+            reply_markup=kb,
+            thumbnail_url="https://telegra.ph/file/3ce9045b1c7faf7123c67.jpg",
+        )
     ]
+    await update.inline_query.answer(results, cache_time=5)
 
-    update.inline_query.answer(results, cache_time=5)
 
-
-def about(query: str, update: Update, context: CallbackContext) -> None:
-    """Handle the inline query."""
-    query = update.inline_query.query
+async def about(_: str, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
-    user = context.bot.get_chat(user_id)
+    user = await context.bot.get_chat(user_id)
     sql.update_user(user.id, user.username)
-    about_text = f"""
-    Spiral (@{context.bot.username})
-    Maintained by [Dank-del](t.me/dank_as_fuck)
-    Built with ❤️ using python-telegram-bot v{str(__version__)}
-    Running on Python {python_version()}
-    """
-    results: list = []
-    kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Support", url="https://t.me/spiralsupport"), InlineKeyboardButton(text="Channel", url="https://t.me/KigyoUpdates"), InlineKeyboardButton(text='Ping', callback_data='pingCB')], [InlineKeyboardButton(text="GitLab", url="https://www.gitlab.com/Dank-del/EnterpriseALRobot"), InlineKeyboardButton(text="GitHub", url="https://github.com/AnimeKaizoku/EnterpriseALRobot/",)]])
 
+    about_text = (
+        f"<b>Spiral (@{context.bot.username})</b>\n"
+        f"Maintained by <a href='https://t.me/dank_as_fuck'>Dank-del</a>\n"
+        f"Built with ❤️ using python-telegram-bot v{str(TG_VER)}\n"
+        f"Running on Python {python_version()}"
+    )
 
-    results.append(
+    kb = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(text="Support", url="https://t.me/spiralsupport"),
+                InlineKeyboardButton(text="Channel", url="https://t.me/KigyoUpdates"),
+                InlineKeyboardButton(text="Ping", callback_data="pingCB"),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="GitLab", url="https://www.gitlab.com/Dank-del/EnterpriseALRobot"
+                ),
+                InlineKeyboardButton(
+                    text="GitHub", url="https://github.com/AnimeKaizoku/EnterpriseALRobot/"
+                ),
+            ],
+        ]
+    )
 
-        InlineQueryResultArticle
-            (
+    results = [
+        InlineQueryResultArticle(
             id=str(uuid4()),
             title=f"About Spiral (@{context.bot.username})",
-            input_message_content=InputTextMessageContent(about_text, parse_mode=ParseMode.MARKDOWN,
-                                                          disable_web_page_preview=True),
-            reply_markup=kb
+            input_message_content=InputTextMessageContent(
+                about_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True
+            ),
+            reply_markup=kb,
+            thumbnail_url="https://telegra.ph/file/3ce9045b1c7faf7123c67.jpg",
         )
-    )
-    update.inline_query.answer(results)
+    ]
+    await update.inline_query.answer(results)
 
 
-
-
-
-MEDIA_QUERY = '''query ($search: String) {
+MEDIA_QUERY = """query ($search: String) {
   Page (perPage: 10) {
     media (search: $search) {
       id
-      title {
-        romaji
-        english
-        native
-      }
+      title { romaji english native }
       type
       format
       status
@@ -247,100 +244,115 @@ MEDIA_QUERY = '''query ($search: String) {
       synonyms
       averageScore
       airingSchedule(notYetAired: true) {
-        nodes {
-          airingAt
-          timeUntilAiring
-          episode
-        }
+        nodes { airingAt timeUntilAiring episode }
       }
       siteUrl
     }
   }
-}'''
+}"""
 
 
-def media_query(query: str, update: Update, context: CallbackContext) -> None:
-    # sourcery skip: avoid-builtin-shadow
-    """
-    Handle anime inline query.
-    """
-    results: List = []
+@kiginline()
+@rate_limit(40, 60)
+async def media_query(query: str, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    results: List[InlineQueryResultArticle] = []
 
     try:
-        results: List = []
-        r = requests.post('https://graphql.anilist.co',
-                          data=json.dumps({'query': MEDIA_QUERY, 'variables': {'search': query}}),
-                          headers={'Content-Type': 'application/json', 'Accept': 'application/json'})
-        res = r.json()
-        data = res['data']['Page']['media']
-        res = data
-        for data in res:
-            title_en = data["title"].get("english") or "N/A"
-            title_ja = data["title"].get("romaji") or "N/A"
-            format = data.get("format") or "N/A"
-            type = data.get("type") or "N/A"
-            bannerimg = data.get("bannerImage") or "https://telegra.ph/file/cc83a0b7102ad1d7b1cb3.jpg"
+        # run blocking requests in a thread so we don't block the event loop
+        post = partial(
+            requests.post,
+            "https://graphql.anilist.co",
+            data=json.dumps({"query": MEDIA_QUERY, "variables": {"search": query}}),
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            timeout=15,
+        )
+        loop = asyncio.get_running_loop()
+        r = await loop.run_in_executor(None, post)
+        r.raise_for_status()
+        data = r.json()["data"]["Page"]["media"]
+
+        for item in data:
+            title_en = item["title"].get("english") or "N/A"
+            title_ja = item["title"].get("romaji") or "N/A"
+            fmt = item.get("format") or "N/A"
+            typ = item.get("type") or "N/A"
+            img = f"https://img.anili.st/media/{item['id']}"
+            aurl = item.get("siteUrl")
+
+            # Clean description and escape for HTML
+            desc_raw = item.get("description") or "N/A"
             try:
-                des = data.get("description").replace("<br>", "").replace("</br>", "")
-                description = des.replace("<i>", "").replace("</i>", "") or "N/A"
+                desc_raw = (
+                    desc_raw.replace("<br>", "").replace("</br>", "").replace("<i>", "").replace("</i>", "")
+                )
             except AttributeError:
-                description = data.get("description")
+                pass
+            description = html.escape(desc_raw or "N/A")
+            if len(description) > 700:
+                description = f"{description[:700]}....."
 
-            try:
-                description = html.escape(description)
-            except AttributeError:
-                description = description or "N/A"
-
-            if len((str(description))) > 700:
-                description = f'{description[:700]}.....'
-
-            avgsc = data.get("averageScore") or "N/A"
-            status = data.get("status") or "N/A"
-            genres = data.get("genres") or "N/A"
-            genres = ", ".join(genres)
-            img = f"https://img.anili.st/media/{data['id']}" or "https://telegra.ph/file/cc83a0b7102ad1d7b1cb3.jpg"
-            aurl = data.get("siteUrl")
-
+            avgsc = item.get("averageScore") or "N/A"
+            status = item.get("status") or "N/A"
+            genres = ", ".join(item.get("genres") or []) or "N/A"
+            genres = html.escape(genres)
 
             kb = InlineKeyboardMarkup(
                 [
                     [
+                        InlineKeyboardButton(text="Read More", url=aurl),
                         InlineKeyboardButton(
-                            text="Read More",
-                            url=aurl,
+                            text="Search again", switch_inline_query_current_chat=".anilist "
                         ),
-                        InlineKeyboardButton(
-                            text="Search again",
-                            switch_inline_query_current_chat=".anilist ",
-                        ),
-
                     ],
-                ])
+                ]
+            )
 
-            txt = f"<b>{title_en} | {title_ja}</b>\n"
-            txt += f"<b>Format</b>: <code>{format}</code>\n"
-            txt += f"<b>Type</b>: <code>{type}</code>\n"
-            txt += f"<b>Average Score</b>: <code>{avgsc}</code>\n"
-            txt += f"<b>Status</b>: <code>{status}</code>\n"
-            txt += f"<b>Genres</b>: <code>{genres}</code>\n"
-            txt += f"<b>Description</b>: <code>{description}</code>\n"
-            txt += f"<a href='{img}'>&#xad</a>"
+            txt = (
+                f"<b>{html.escape(title_en)} | {html.escape(title_ja)}</b>\n"
+                f"<b>Format</b>: <code>{html.escape(fmt)}</code>\n"
+                f"<b>Type</b>: <code>{html.escape(typ)}</code>\n"
+                f"<b>Average Score</b>: <code>{html.escape(str(avgsc))}</code>\n"
+                f"<b>Status</b>: <code>{html.escape(status)}</code>\n"
+                f"<b>Genres</b>: <code>{genres}</code>\n"
+                f"<b>Description</b>: <code>{description}</code>\n"
+                f"<a href='{img}'>&#xad</a>"
+            )
 
             results.append(
-                InlineQueryResultArticle
-                    (
+                InlineQueryResultArticle(
                     id=str(uuid4()),
-                    title=f"{title_en} | {title_ja} | {format}",
-                    thumb_url=img,
-                    description=f"{description}",
-                    input_message_content=InputTextMessageContent(txt, parse_mode=ParseMode.HTML,
-                                                                  disable_web_page_preview=False),
-                    reply_markup=kb
+                    title=f"{title_en} | {title_ja} | {fmt}",
+                    description=html.unescape(description),
+                    input_message_content=InputTextMessageContent(
+                        txt, parse_mode=ParseMode.HTML, disable_web_page_preview=False
+                    ),
+                    reply_markup=kb,
+                    thumbnail_url=img,  # renamed from thumb_url
                 )
             )
     except Exception as e:
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton(text="Report error", url="t.me/enrapturedoverwatch_bot"), InlineKeyboardButton(text="Search again", switch_inline_query_current_chat=".anilist ")]])
+        kb = InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(text="Report error", url="https://t.me/enrapturedoverwatch_bot"),
+                    InlineKeyboardButton(text="Search again", switch_inline_query_current_chat=".anilist "),
+                ]
+            ]
+        )
+        err = html.escape(str(e))
+        results.append(
+            InlineQueryResultArticle(
+                id=str(uuid4()),
+                title=f"Media {query or ''} not found",
+                input_message_content=InputTextMessageContent(
+                    f"Media {html.escape(query or '')} not found due to <code>{err}</code>",
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                ),
+                reply_markup=kb,
+                thumbnail_url="https://telegra.ph/file/cc83a0b7102ad1d7b1cb3.jpg",
+            )
+        )
 
-        results.append(InlineQueryResultArticle(id=str(uuid4()), title=f"Media {query} not found", input_message_content=InputTextMessageContent(f"Media {query} not found due to {e}", parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True), reply_markup=kb))
+    await update.inline_query.answer(results, cache_time=5)
 
-    update.inline_query.answer(results, cache_time=5)
