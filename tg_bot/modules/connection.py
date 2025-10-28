@@ -1,5 +1,6 @@
 import time
 import re
+import html
 
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update, Bot
 from telegram.constants import ParseMode, ChatType
@@ -7,7 +8,7 @@ from telegram.error import BadRequest, Forbidden
 from telegram.ext import CommandHandler, CallbackQueryHandler, ContextTypes
 
 import tg_bot.modules.sql.connection_sql as sql
-from tg_bot import dispatcher, SUDO_USERS, DEV_USERS
+from tg_bot import application, SUDO_USERS, DEV_USERS
 from tg_bot.modules.helper_funcs import chat_status
 from tg_bot.modules.helper_funcs.alternate import send_message, typing_action
 from tg_bot.modules.language import gs
@@ -37,22 +38,22 @@ async def allow_connections(update: Update, context: ContextTypes.DEFAULT_TYPE) 
             else:
                 await send_message(
                     update.effective_message,
-                    "Please enter `yes` or `no`!",
-                    parse_mode=ParseMode.MARKDOWN,
+                    "Please enter <code>yes</code> or <code>no</code>!",
+                    parse_mode=ParseMode.HTML,
                 )
         else:
             get_settings = sql.allow_connect_to_chat(chat.id)
             if get_settings:
                 await send_message(
                     update.effective_message,
-                    "Connections to this group are *Allowed* for members!",
-                    parse_mode=ParseMode.MARKDOWN,
+                    "Connections to this group are <b>Allowed</b> for members!",
+                    parse_mode=ParseMode.HTML,
                 )
             else:
                 await send_message(
                     update.effective_message,
-                    "Connection to this group are *Not Allowed* for members!",
-                    parse_mode=ParseMode.MARKDOWN,
+                    "Connections to this group are <b>Not Allowed</b> for members!",
+                    parse_mode=ParseMode.HTML,
                 )
     else:
         await send_message(update.effective_message, "This command is for group only. Not in PM!")
@@ -66,7 +67,7 @@ async def connection_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn = await connected(context.bot, update, chat, user.id, need_admin=True)
 
     if conn:
-        conn_chat = await dispatcher.bot.get_chat(conn)
+        conn_chat = await context.bot.get_chat(conn)
         chat_name = conn_chat.title
     else:
         if chat.type != ChatType.PRIVATE:
@@ -74,10 +75,10 @@ async def connection_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_name = chat.title
 
     if conn:
-        message = f"You are currently connected to {chat_name}.\n"
+        message = f"You are currently connected to <b>{html.escape(chat_name)}</b>.\n"
     else:
         message = "You are currently not connected in any group.\n"
-    await send_message(update.effective_message, message, parse_mode=ParseMode.MARKDOWN)
+    await send_message(update.effective_message, message, parse_mode=ParseMode.HTML)
 
 
 @typing_action
@@ -118,14 +119,14 @@ async def connect_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):  # s
                 if connection_status:
                     conn_id = await connected(context.bot, update, chat, user.id, need_admin=False)
                     if conn_id:
-                        conn_chat = await dispatcher.bot.get_chat(conn_id)
+                        conn_chat = await context.bot.get_chat(conn_id)
                         chat_name = conn_chat.title
                     else:
                         chat_name = str(connect_chat_id)
                     await send_message(
                         update.effective_message,
-                        f"Successfully connected to *{chat_name}*. \nUse /helpconnect to check available commands.",
-                        parse_mode=ParseMode.MARKDOWN,
+                        f"Successfully connected to <b>{html.escape(chat_name)}</b>.\nUse <code>/helpconnect</code> to check available commands.",
+                        parse_mode=ParseMode.HTML,
                     )
                     sql.add_history_conn(user.id, str(connect_chat_id), chat_name)
                 else:
@@ -143,21 +144,21 @@ async def connect_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):  # s
                 buttons = []
             conn = await connected(context.bot, update, chat, user.id, need_admin=False)
             if conn:
-                connectedchat = await dispatcher.bot.get_chat(conn)
-                text = f"You are currently connected to *{connectedchat.title}* (`{conn}`)"
+                connectedchat = await context.bot.get_chat(conn)
+                text = f"You are currently connected to <b>{html.escape(connectedchat.title)}</b> (<code>{conn}</code>)"
                 buttons.append(InlineKeyboardButton(text="🔌 Disconnect", callback_data="connect_disconnect"))
             else:
                 text = "Write the chat ID or tag to connect!"
             if gethistory:
-                text += "\n\n*Connection history:*\n"
-                text += "╒═══「 *Info* 」\n"
-                text += "│  Sorted: `Newest`\n"
+                text += "\n\n<b>Connection history:</b>\n"
+                text += "╒═══「 <b>Info</b> 」\n"
+                text += "│  Sorted: <code>Newest</code>\n"
                 text += "│\n"
                 buttons = [buttons]
                 for x in sorted(gethistory.keys(), reverse=True):
                     htime = time.strftime("%d/%m/%Y", time.localtime(x))
-                    text += "╞═「 *{}* 」\n│   `{}`\n│   `{}`\n".format(
-                        gethistory[x]["chat_name"], gethistory[x]["chat_id"], htime
+                    text += "╞═「 <b>{}</b> 」\n│   <code>{}</code>\n│   <code>{}</code>\n".format(
+                        html.escape(gethistory[x]["chat_name"]), gethistory[x]["chat_id"], htime
                     )
                     text += "│\n"
                     buttons.append(
@@ -176,7 +177,7 @@ async def connect_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):  # s
                 conn_hist = InlineKeyboardMarkup([buttons])
             else:
                 conn_hist = None
-            await send_message(update.effective_message, text, parse_mode=ParseMode.MARKDOWN, reply_markup=conn_hist)
+            await send_message(update.effective_message, text, parse_mode=ParseMode.HTML, reply_markup=conn_hist)
 
     else:
         getstatusadmin = await context.bot.get_chat_member(chat.id, update.effective_message.from_user.id)
@@ -187,18 +188,19 @@ async def connect_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):  # s
         if isadmin or (isallow and ismember) or (user.id in SUDO_USERS):
             connection_status = sql.connect(update.effective_message.from_user.id, chat.id)
             if connection_status:
-                chat_name = (await dispatcher.bot.get_chat(chat.id)).title
+                chat_name = (await context.bot.get_chat(chat.id)).title
+                safe_name = html.escape(chat_name)
                 await send_message(
                     update.effective_message,
-                    f"Successfully connected to *{chat_name}*.",
-                    parse_mode=ParseMode.MARKDOWN,
+                    f"Successfully connected to <b>{safe_name}</b>.",
+                    parse_mode=ParseMode.HTML,
                 )
                 try:
                     sql.add_history_conn(user.id, str(chat.id), chat_name)
                     await context.bot.send_message(
                         update.effective_message.from_user.id,
-                        f"You are connected to *{chat_name}*. \nUse `/helpconnect` to check available commands.",
-                        parse_mode=ParseMode.MARKDOWN,
+                        f"You are connected to <b>{safe_name}</b>.\nUse <code>/helpconnect</code> to check available commands.",
+                        parse_mode=ParseMode.HTML,
                     )
                 except BadRequest:
                     pass
@@ -250,17 +252,18 @@ async def connected(bot: Bot, update: Update, chat, user_id, need_admin=True):
         return False
 
 
-CONN_HELP = """
- Actions are available with connected groups:
- • View and edit Notes.
- • View and edit Filters.
- • Get invite link of chat.
- • Set and control AntiFlood settings.
- • Set and control Blacklist settings.
- • Set Locks and Unlocks in chat.
- • Enable and Disable commands in chat.
- • Export and Imports of chat backup.
- • More in future!"""
+CONN_HELP = (
+    "Actions are available with connected groups:\n"
+    " • View and edit Notes.\n"
+    " • View and edit Filters.\n"
+    " • Get invite link of chat.\n"
+    " • Set and control AntiFlood settings.\n"
+    " • Set and control Blacklist settings.\n"
+    " • Set Locks and Unlocks in chat.\n"
+    " • Enable and Disable commands in chat.\n"
+    " • Export and Imports of chat backup.\n"
+    " • More in future!"
+)
 
 
 async def help_connect_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -268,7 +271,7 @@ async def help_connect_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_message(update.effective_message, "PM me with that command to get help.")
         return
     else:
-        await send_message(update.effective_message, CONN_HELP, parse_mode=ParseMode.MARKDOWN)
+        await send_message(update.effective_message, CONN_HELP, parse_mode=ParseMode.HTML)
 
 
 async def connect_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -295,13 +298,13 @@ async def connect_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if connection_status:
                 conn = await connected(context.bot, update, chat, user.id, need_admin=False)
                 if conn:
-                    conn_chat = await dispatcher.bot.get_chat(conn)
+                    conn_chat = await context.bot.get_chat(conn)
                     chat_name = conn_chat.title
                 else:
                     chat_name = str(target_chat)
                 await query.message.edit_text(
-                    f"Successfully connected to *{chat_name}*. \nUse `/helpconnect` to check available commands.",
-                    parse_mode=ParseMode.MARKDOWN,
+                    f"Successfully connected to <b>{html.escape(chat_name)}</b>.\nUse <code>/helpconnect</code> to check available commands.",
+                    parse_mode=ParseMode.HTML,
                 )
                 sql.add_history_conn(user.id, str(conn if conn else target_chat), chat_name)
             else:
@@ -336,12 +339,13 @@ ALLOW_CONNECTIONS_HANDLER = CommandHandler("allowconnect", allow_connections)
 HELP_CONNECT_CHAT_HANDLER = CommandHandler("helpconnect", help_connect_chat)
 CONNECT_BTN_HANDLER = CallbackQueryHandler(connect_button, pattern=r"^connect")
 
-dispatcher.add_handler(CONNECT_CHAT_HANDLER)
-dispatcher.add_handler(CONNECTION_CHAT_HANDLER)
-dispatcher.add_handler(DISCONNECT_CHAT_HANDLER)
-dispatcher.add_handler(ALLOW_CONNECTIONS_HANDLER)
-dispatcher.add_handler(HELP_CONNECT_CHAT_HANDLER)
-dispatcher.add_handler(CONNECT_BTN_HANDLER)
+# Register handlers on PTB 22+ Application (no legacy fallback)
+application.add_handler(CONNECT_CHAT_HANDLER)
+application.add_handler(CONNECTION_CHAT_HANDLER)
+application.add_handler(DISCONNECT_CHAT_HANDLER)
+application.add_handler(ALLOW_CONNECTIONS_HANDLER)
+application.add_handler(HELP_CONNECT_CHAT_HANDLER)
+application.add_handler(CONNECT_BTN_HANDLER)
 
 __mod_name__ = "Connection"
 __handlers__ = [

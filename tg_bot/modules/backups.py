@@ -1,14 +1,14 @@
-import json, time
+import json, time, inspect, html
 from io import BytesIO
 from typing import Optional
 
 from telegram import Message, Update
-from telegram.constants import ParseMode, ChatAction
+from telegram.constants import ParseMode, ChatAction, ChatType
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
 
 import tg_bot.modules.sql.notes_sql as sql
-from tg_bot import dispatcher, log as LOGGER, OWNER_ID
+from tg_bot import log as LOGGER, OWNER_ID
 # from tg_bot.__main__ import DATA_IMPORT  # avoid circular import
 from tg_bot.modules.helper_funcs.alternate import typing_action
 from tg_bot.modules.helper_funcs.decorators import kigcmd, rate_limit
@@ -47,15 +47,16 @@ async def import_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
     conn = connected(context.bot, update, chat, user.id, need_admin=True)
+    if inspect.isawaitable(conn):
+        conn = await conn
     if conn:
-        chat = await dispatcher.bot.get_chat(conn)
+        chat = await context.bot.get_chat(conn)
         chat_name = chat.title
     else:
-        if update.effective_message.chat.type == "private":
+        if chat.type == ChatType.PRIVATE:
             await update.effective_message.reply_text("This is a group only command!")
             return ""
-        chat = update.effective_chat
-        chat_name = update.effective_message.chat.title
+        chat_name = chat.title
 
     if msg.reply_to_message and msg.reply_to_message.document:
         try:
@@ -85,16 +86,16 @@ async def import_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             if data.get(str(chat.id)) is None:
                 if conn:
-                    text = "Backup comes from another chat, I can't return another chat to chat *{}*".format(
-                        chat_name,
+                    text = "Backup comes from another chat, I can't return another chat to chat <b>{}</b>".format(
+                        html.escape(chat_name),
                     )
                 else:
                     text = "Backup comes from another chat, I can't return another chat to this chat"
-                await msg.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-                return
+                await msg.reply_text(text, parse_mode=ParseMode.HTML)
+                return ""
         except Exception:
             await msg.reply_text("There was a problem while importing the data!")
-            return
+            return ""
 
         # Check if backup is from self
         try:
@@ -125,8 +126,12 @@ async def import_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
-        text = "Backup fully restored on *{}*.".format(chat_name) if conn else "Backup fully restored"
-        await msg.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+        text = (
+            "Backup fully restored on <b>{}</b>.".format(html.escape(chat_name))
+            if conn
+            else "Backup fully restored."
+        )
+        await msg.reply_text(text, parse_mode=ParseMode.HTML)
 
 
 @kigcmd(command='export')
@@ -141,15 +146,16 @@ async def export_data(update: Update, context: ContextTypes.DEFAULT_TYPE):  # so
     current_chat_id = update.effective_chat.id
 
     conn = connected(context.bot, update, chat, user.id, need_admin=True)
+    if inspect.isawaitable(conn):
+        conn = await conn
     if conn:
-        chat = await dispatcher.bot.get_chat(conn)
+        chat = await context.bot.get_chat(conn)
         chat_id = conn
     else:
-        if update.effective_message.chat.type == "private":
+        if chat.type == ChatType.PRIVATE:
             await update.effective_message.reply_text("This is a group only command!")
             return ""
-        chat = update.effective_chat
-        chat_id = update.effective_chat.id
+        chat_id = chat.id
 
     jam = time.time()
     new_jam = jam + 86400  # once a day
@@ -160,10 +166,10 @@ async def export_data(update: Update, context: ContextTypes.DEFAULT_TYPE):  # so
                 "%H:%M:%S %d/%m/%Y", time.localtime(checkchat.get("value")),
             )
             await update.effective_message.reply_text(
-                "You can only backup once a day!\nYou can backup again at `{}`".format(
+                "You can only backup once a day!\nYou can backup again at <code>{}</code>".format(
                     timeformatt,
                 ),
-                parse_mode=ParseMode.MARKDOWN,
+                parse_mode=ParseMode.HTML,
             )
             return
         else:
@@ -304,12 +310,16 @@ async def export_data(update: Update, context: ContextTypes.DEFAULT_TYPE):  # so
     await context.bot.send_document(
         current_chat_id,
         document=bio,
-        caption="*Successfully Exported backup:*\nChat: `{}`\nChat ID: `{}`\nOn: `{}`\n\nNote: This `Spiral-Backup` was specially made for notes.".format(
-            chat.title, chat_id, tgl,
-        ),
-        timeout=360,
+        caption="<b>Successfully Exported backup:</b>\n"
+                "Chat: <code>{}</code>\n"
+                "Chat ID: <code>{}</code>\n"
+                "On: <code>{}</code>\n\n"
+                "Note: This <code>Spiral-Backup</code> was specially made for notes.".format(
+                    html.escape(chat.title), chat_id, tgl,
+                ),
+        read_timeout=360,
         reply_to_message_id=msg.message_id if msg else None,
-        parse_mode=ParseMode.MARKDOWN,
+        parse_mode=ParseMode.HTML,
     )
 
 

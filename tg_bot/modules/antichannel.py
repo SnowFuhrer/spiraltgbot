@@ -42,7 +42,6 @@ async def set_antichannel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     )
 
-
 @kigmsg(filters.ChatType.GROUPS, group=110)
 async def eliminate_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
@@ -51,15 +50,14 @@ async def eliminate_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not antichannel_status(chat.id):
         return
 
-    if message.sender_chat and message.sender_chat.type == "channel" and not message.is_automatic_forward:
+    sc = message.sender_chat
+    if sc and sc.type == ChatType.CHANNEL and not message.is_automatic_forward:
         try:
             await message.delete()
-        except Exception:
-            pass
-        sender_chat = message.sender_chat
+        except BadRequest:
+            pass  # e.g., message already deleted or lacking rights
+
         try:
-            await context.bot.ban_chat_sender_chat(
-                chat_id=chat.id, sender_chat_id=sender_chat.id
-            )
-        except Exception:
-            pass
+            await context.bot.ban_chat_sender_chat(chat_id=chat.id, sender_chat_id=sc.id)
+        except (BadRequest, Forbidden):
+            pass  # e.g., bot lacks can_restrict_members, or method not allowed here

@@ -6,7 +6,6 @@ from tg_bot import (
     SUPPORT_USERS,
     SARDEGNA_USERS,
     WHITELIST_USERS,
-    dispatcher,
 )
 from tg_bot.modules.helper_funcs.chat_status import dev_plus
 from tg_bot.modules.helper_funcs.extraction import extract_user, extract_user_and_text
@@ -17,6 +16,20 @@ from telegram.error import BadRequest
 from telegram.ext import CallbackContext
 from telegram.helpers import mention_html
 from tg_bot.modules.helper_funcs.decorators import kigcmd, rate_limit
+
+# Resolve bot id without relying on a global dispatcher (works with PTB v20+ / v22+)
+BOT_ID = None
+try:
+    from tg_bot import application as _application  # PTB 20+/22 Application
+    if getattr(_application, "bot", None):
+        BOT_ID = _application.bot.id
+except Exception:
+    try:
+        from tg_bot import dispatcher as _dispatcher  # fallback for older setups
+        if getattr(_dispatcher, "bot", None):
+            BOT_ID = _dispatcher.bot.id
+    except Exception:
+        BOT_ID = None
 
 BLACKLISTWHITELIST = (
     [OWNER_ID] + DEV_USERS + SUDO_USERS + WHITELIST_USERS + SUPPORT_USERS
@@ -99,7 +112,7 @@ async def unbl_user(update: Update, context: CallbackContext) -> str:
 
     if sql.is_user_blacklisted(user_id):
         sql.unblacklist_user(user_id)
-        await message.reply_text("*notices user*")
+        await message.reply_text("<i>notices user</i>", parse_mode=ParseMode.HTML)
         log_message = (
             f"#UNBLACKLIST\n"
             f"<b>Admin:</b> {mention_html(user.id, user.first_name)}\n"
@@ -142,15 +155,14 @@ def __user_info__(user_id):
 
     is_blacklisted = sql.is_user_blacklisted(user_id)
 
-    text = "Blacklisted: <b>{}</b>"
-    if (
-        user_id
-        in [777000, 1087968824, dispatcher.bot.id]
-        + SUDO_USERS
-        + SARDEGNA_USERS
-        + WHITELIST_USERS
-    ):
+    # Skip special and privileged IDs (and self if we could resolve BOT_ID)
+    skip_ids = [777000, 1087968824] + SUDO_USERS + SARDEGNA_USERS + WHITELIST_USERS
+    if BOT_ID:
+        skip_ids.append(BOT_ID)
+    if user_id in skip_ids:
         return ""
+
+    text = "Blacklisted: <b>{}</b>"
     if is_blacklisted:
         text = text.format("Yes")
         reason = sql.get_reason(user_id)

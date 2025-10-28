@@ -9,7 +9,7 @@ from telegram.helpers import mention_html
 
 from tg_bot.modules.sql.approve_sql import is_approved
 import tg_bot.modules.sql.blacklist_sql as sql
-from tg_bot import log, dispatcher
+from tg_bot import log
 from tg_bot.modules.helper_funcs.chat_status import user_admin as u_admin, user_not_admin
 from tg_bot.modules.helper_funcs.extraction import extract_text
 from tg_bot.modules.helper_funcs.misc import split_message
@@ -37,7 +37,7 @@ async def blacklist(update, context):
     conn = connected(context.bot, update, chat, user.id, need_admin=False)
     if conn:
         chat_id = conn
-        chat_obj = await dispatcher.bot.get_chat(conn)
+        chat_obj = await context.bot.get_chat(conn)
         chat_name = chat_obj.title
     else:
         if chat.type == "private":
@@ -82,7 +82,7 @@ async def add_blacklist(update, context):
     conn = connected(context.bot, update, chat, user.id)
     if conn:
         chat_id = conn
-        chat_obj = await dispatcher.bot.get_chat(conn)
+        chat_obj = await context.bot.get_chat(conn)
         chat_name = chat_obj.title
     else:
         chat_id = update.effective_chat.id
@@ -113,16 +113,14 @@ async def add_blacklist(update, context):
                 ),
                 parse_mode=ParseMode.HTML,
             )
-
         else:
             await send_message(
                 update.effective_message,
-                "Added blacklist trigger: <code>{}</code> in <b>{}</b>!".format(
+                "Added <b>{}</b> blacklist triggers in <b>{}</b>!".format(
                     len(to_blacklist), chat_name
                 ),
                 parse_mode=ParseMode.HTML,
             )
-
     else:
         await send_message(
             update.effective_message,
@@ -143,7 +141,7 @@ async def unblacklist(update, context):
     conn = connected(context.bot, update, chat, user.id)
     if conn:
         chat_id = conn
-        chat_obj = await dispatcher.bot.get_chat(conn)
+        chat_obj = await context.bot.get_chat(conn)
         chat_name = chat_obj.title
     else:
         chat_id = update.effective_chat.id
@@ -195,9 +193,7 @@ async def unblacklist(update, context):
         elif not successful:
             await send_message(
                 update.effective_message,
-                "None of these triggers exist so it can't be removed.".format(
-                    successful, len(to_unblacklist) - successful
-                ),
+                "None of these triggers exist so they can't be removed.",
                 parse_mode=ParseMode.HTML,
             )
 
@@ -230,7 +226,7 @@ async def blacklist_mode(update, context):  # sourcery no-metrics
 
     conn = connected(context.bot, update, chat, user.id, need_admin=True)
     if conn:
-        chat_obj = await dispatcher.bot.get_chat(conn)
+        chat_obj = await context.bot.get_chat(conn)
         chat = chat_obj
         chat_id = conn
         chat_name = chat_obj.title
@@ -267,31 +263,39 @@ async def blacklist_mode(update, context):  # sourcery no-metrics
             sql.set_blacklist_strength(chat_id, 5, "0")
         elif args[0].lower() == "tban":
             if len(args) == 1:
-                teks = """It looks like you tried to set time value for blacklist but you didn't specified time; Try, `/blacklistmode tban <timevalue>`.
-
-Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."""
-                await send_message(update.effective_message, teks, parse_mode="markdown")
+                teks = (
+                    "It looks like you tried to set time value for blacklist but you didn't specify the time; "
+                    "Try, <code>/blacklistmode tban &lt;timevalue&gt;</code>.\n\n"
+                    "Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."
+                )
+                await send_message(update.effective_message, teks, parse_mode=ParseMode.HTML)
                 return ""
             restime = extract_time(msg, args[1])
             if not restime:
-                teks = """Invalid time value!
-Example of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."""
-                await send_message(update.effective_message, teks, parse_mode="markdown")
+                teks = (
+                    "Invalid time value!\n"
+                    "Example of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."
+                )
+                await send_message(update.effective_message, teks, parse_mode=ParseMode.HTML)
                 return ""
             settypeblacklist = "temporarily ban for {}".format(args[1])
             sql.set_blacklist_strength(chat_id, 6, str(args[1]))
         elif args[0].lower() == "tmute":
             if len(args) == 1:
-                teks = """It looks like you tried to set time value for blacklist but you didn't specified  time; try, `/blacklistmode tmute <timevalue>`.
-
-Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."""
-                await send_message(update.effective_message, teks, parse_mode="markdown")
+                teks = (
+                    "It looks like you tried to set time value for blacklist but you didn't specify the time; "
+                    "Try, <code>/blacklistmode tmute &lt;timevalue&gt;</code>.\n\n"
+                    "Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."
+                )
+                await send_message(update.effective_message, teks, parse_mode=ParseMode.HTML)
                 return ""
             restime = extract_time(msg, args[1])
             if not restime:
-                teks = """Invalid time value!
-Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."""
-                await send_message(update.effective_message, teks, parse_mode="markdown")
+                teks = (
+                    "Invalid time value!\n"
+                    "Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks."
+                )
+                await send_message(update.effective_message, teks, parse_mode=ParseMode.HTML)
                 return ""
             settypeblacklist = "temporarily mute for {}".format(args[1])
             sql.set_blacklist_strength(chat_id, 7, str(args[1]))
@@ -301,13 +305,15 @@ Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks.
                 "I only understand: off/del/warn/ban/kick/mute/tban/tmute!",
             )
             return ""
+
         if conn:
-            text = "Changed blacklist mode: `{}` in *{}*!".format(
+            text = "Changed blacklist mode: <code>{}</code> in <b>{}</b>!".format(
                 settypeblacklist, chat_name
             )
         else:
-            text = "Changed blacklist mode: `{}`!".format(settypeblacklist)
-        await send_message(update.effective_message, text, parse_mode="markdown")
+            text = "Changed blacklist mode: <code>{}</code>!".format(settypeblacklist)
+
+        await send_message(update.effective_message, text, parse_mode=ParseMode.HTML)
         return (
             "<b>{}:</b>\n"
             "<b>Admin:</b> {}\n"
@@ -335,13 +341,15 @@ Examples of time value: 4m = 4 minutes, 3h = 3 hours, 6d = 6 days, 5w = 5 weeks.
             settypeblacklist = "temporarily ban for {}".format(getvalue)
         elif getmode == 7:
             settypeblacklist = "temporarily mute for {}".format(getvalue)
+
         if conn:
-            text = "Current blacklistmode: *{}* in *{}*.".format(
+            text = "Current blacklistmode: <b>{}</b> in <b>{}</b>.".format(
                 settypeblacklist, chat_name
             )
         else:
-            text = "Current blacklistmode: *{}*.".format(settypeblacklist)
-        await send_message(update.effective_message, text, parse_mode=ParseMode.MARKDOWN)
+            text = "Current blacklistmode: <b>{}</b>.".format(settypeblacklist)
+
+        await send_message(update.effective_message, text, parse_mode=ParseMode.HTML)
     return ""
 
 

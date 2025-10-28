@@ -43,26 +43,30 @@ async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[st
     chat = update.effective_chat
     user = update.effective_user
     message = update.effective_message
-    args = context.args
+    args = context.args or []
     bot = context.bot
     log_message = ""
     reason = ""
 
     if message.reply_to_message and message.reply_to_message.sender_chat:
-        r = await bot.ban_chat_sender_chat(chat_id=chat.id, sender_chat_id=message.reply_to_message.sender_chat.id)
+        r = await bot.ban_chat_sender_chat(
+            chat_id=chat.id,
+            sender_chat_id=message.reply_to_message.sender_chat.id,
+        )
         if r:
             await message.reply_text(
                 "Channel {} was banned successfully from {}".format(
                     html.escape(message.reply_to_message.sender_chat.title),
-                    html.escape(chat.title)
+                    html.escape(chat.title),
                 ),
-                parse_mode=ParseMode.HTML
+                parse_mode=ParseMode.HTML,
             )
             return (
                 f"<b>{html.escape(chat.title)}:</b>\n"
                 f"#BANNED\n"
                 f"<b>Admin:</b> {mention_html(user.id, user.first_name)}\n"
-                f"<b>Channel:</b> {html.escape(message.reply_to_message.sender_chat.title)} ({message.reply_to_message.sender_chat.id})"
+                f"<b>Channel:</b> {html.escape(message.reply_to_message.sender_chat.title)} "
+                f"({message.reply_to_message.sender_chat.id})"
             )
         else:
             await message.reply_text("Failed to ban channel")
@@ -79,9 +83,9 @@ async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[st
     except BadRequest as excp:
         if excp.message != "User not found":
             raise
-
         await message.reply_text("Can't seem to find this person.")
         return log_message
+
     if user_id == context.bot.id:
         await message.reply_text("Oh yeah, ban myself, noob!")
         return log_message
@@ -102,6 +106,7 @@ async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[st
         else:
             await message.reply_text("This user has immunity and cannot be banned.")
         return log_message
+
     log = (
         f"<b>{html.escape(chat.title)}:</b>\n"
         f"#BANNED\n"
@@ -109,15 +114,17 @@ async def ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[st
         f"<b>User:</b> {mention_html(member.user.id, member.user.first_name)}"
     )
     if reason:
-        log += "\n<b>Reason:</b> {}".format(reason)
+        log += "\n<b>Reason:</b> <code>{}</code>".format(html.escape(reason))
 
     try:
-        await chat.ban_member(user_id)
+        await context.bot.ban_chat_member(chat.id, user_id)
         await context.bot.send_message(
             chat.id,
             "{} was banned by {} in <b>{}</b>\n<b>Reason</b>: <code>{}</code>".format(
-                mention_html(member.user.id, member.user.first_name), mention_html(user.id, user.first_name),
-                message.chat.title, reason
+                mention_html(member.user.id, member.user.first_name),
+                mention_html(user.id, user.first_name),
+                html.escape(chat.title),
+                html.escape(reason or ""),
             ),
             parse_mode=ParseMode.HTML,
         )
@@ -154,7 +161,7 @@ async def temp_ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     message = update.effective_message
     log_message = ""
     reason = ""
-    bot, args = context.bot, context.args
+    bot, args = context.bot, (context.args or [])
 
     user_id, reason = await extract_user_and_text(message, args)
 
@@ -169,6 +176,7 @@ async def temp_ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
             raise
         await message.reply_text("I can't seem to find this user.")
         return log_message
+
     if user_id == bot.id:
         await message.reply_text("I'm not gonna BAN myself, are you crazy?")
         return log_message
@@ -182,7 +190,6 @@ async def temp_ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         return log_message
 
     split_reason = reason.split(None, 1)
-
     time_val = split_reason[0].lower()
     reason = split_reason[1] if len(split_reason) > 1 else ""
     bantime = extract_time(message, time_val)
@@ -198,13 +205,17 @@ async def temp_ban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         f"<b>Time:</b> {time_val}"
     )
     if reason:
-        log += "\n<b>Reason:</b> {}".format(reason)
+        log += "\n<b>Reason:</b> <code>{}</code>".format(html.escape(reason))
 
     try:
-        await chat.ban_member(user_id, until_date=bantime)
+        await bot.ban_chat_member(chat.id, user_id, until_date=bantime)
         await bot.send_message(
             chat.id,
-            f"Banned! User {mention_html(member.user.id, member.user.first_name)} will be banned for {time_val}.\nReason: {reason}",
+            "Banned! User {} will be banned for {}.\nReason: <code>{}</code>".format(
+                mention_html(member.user.id, member.user.first_name),
+                time_val,
+                html.escape(reason or ""),
+            ),
             parse_mode=ParseMode.HTML,
         )
         return log
@@ -241,7 +252,7 @@ async def kick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user = update.effective_user
     message = update.effective_message
     log_message = ""
-    bot, args = context.bot, context.args
+    bot, args = context.bot, (context.args or [])
     user_id, reason = await extract_user_and_text(message, args)
 
     if not user_id:
@@ -255,6 +266,7 @@ async def kick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
             raise
         await message.reply_text("I can't seem to find this user.")
         return log_message
+
     if user_id == bot.id:
         await message.reply_text("Yeahhh I'm not gonna do that.")
         return log_message
@@ -263,11 +275,17 @@ async def kick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         await message.reply_text("I really wish I could kick this user....")
         return log_message
 
-    res = await chat.unban_member(user_id)  # unban on current user = kick
-    if res:
+    try:
+        await bot.ban_chat_member(chat.id, user_id)
+        await bot.unban_chat_member(chat.id, user_id)
         await bot.send_message(
             chat.id,
-            f"{mention_html(member.user.id, member.user.first_name)} was kicked by {mention_html(user.id, user.first_name)} in {message.chat.title}\n<b>Reason</b>: <code>{reason}</code>",
+            "{} was kicked by {} in <b>{}</b>\n<b>Reason</b>: <code>{}</code>".format(
+                mention_html(member.user.id, member.user.first_name),
+                mention_html(user.id, user.first_name),
+                html.escape(message.chat.title),
+                html.escape(reason or ""),
+            ),
             parse_mode=ParseMode.HTML,
         )
         log = (
@@ -277,11 +295,10 @@ async def kick(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
             f"<b>User:</b> {mention_html(member.user.id, member.user.first_name)}"
         )
         if reason:
-            log += f"\n<b>Reason:</b> {reason}"
-
+            log += f"\n<b>Reason:</b> <code>{html.escape(reason)}</code>"
         return log
 
-    else:
+    except BadRequest:
         await message.reply_text("Well damn, I can't kick that user.")
 
     return log_message
@@ -297,10 +314,13 @@ async def kickme(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text("I wish I could... but you're an admin.")
         return
 
-    res = await update.effective_chat.unban_member(user_id)  # unban on current user = kick
-    if res:
-        await update.effective_message.reply_text("*kicks you out of the group*")
-    else:
+    try:
+        await context.bot.ban_chat_member(update.effective_chat.id, user_id)
+        await context.bot.unban_chat_member(update.effective_chat.id, user_id)
+        await update.effective_message.reply_text(
+            "<i>kicks you out of the group</i>", parse_mode=ParseMode.HTML
+        )
+    except BadRequest:
         await update.effective_message.reply_text("Huh? I can't :/")
 
 
@@ -316,26 +336,32 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[
     user = update.effective_user
     chat = update.effective_chat
     log_message = ""
-    bot, args = context.bot, context.args
+    bot, args = context.bot, (context.args or [])
+
     if message.reply_to_message and message.reply_to_message.sender_chat:
-        r = await bot.unban_chat_sender_chat(chat_id=chat.id, sender_chat_id=message.reply_to_message.sender_chat.id)
+        r = await bot.unban_chat_sender_chat(
+            chat_id=chat.id,
+            sender_chat_id=message.reply_to_message.sender_chat.id,
+        )
         if r:
             await message.reply_text(
                 "Channel {} was unbanned successfully from {}".format(
                     html.escape(message.reply_to_message.sender_chat.title),
-                    html.escape(chat.title)
+                    html.escape(chat.title),
                 ),
-                parse_mode=ParseMode.HTML
+                parse_mode=ParseMode.HTML,
             )
             return (
                 f"<b>{html.escape(chat.title)}:</b>\n"
                 f"#UNBANNED\n"
                 f"<b>Admin:</b> {mention_html(user.id, user.first_name)}\n"
-                f"<b>Channel:</b> {html.escape(message.reply_to_message.sender_chat.title)} ({message.reply_to_message.sender_chat.id})"
+                f"<b>Channel:</b> {html.escape(message.reply_to_message.sender_chat.title)} "
+                f"({message.reply_to_message.sender_chat.id})"
             )
         else:
             await message.reply_text("Failed to unban channel")
         return
+
     user_id, reason = await extract_user_and_text(message, args)
     if not user_id:
         await message.reply_text("I doubt that's a user.")
@@ -348,6 +374,7 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[
             raise
         await message.reply_text("I can't seem to find this user.")
         return log_message
+
     if user_id == bot.id:
         await message.reply_text("How would I unban myself if I wasn't here...?")
         return log_message
@@ -356,12 +383,14 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[
         await message.reply_text("Isn't this person already here??")
         return log_message
 
-    await chat.unban_member(user_id)
+    await bot.unban_chat_member(chat.id, user_id)
     await bot.send_message(
         chat.id,
         "{} was unbanned by {} in <b>{}</b>\n<b>Reason</b>: <code>{}</code>".format(
-            mention_html(member.user.id, member.user.first_name), mention_html(user.id, user.first_name),
-            message.chat.title, reason
+            mention_html(member.user.id, member.user.first_name),
+            mention_html(user.id, user.first_name),
+            html.escape(message.chat.title),
+            html.escape(reason or ""),
         ),
         parse_mode=ParseMode.HTML,
     )
@@ -373,7 +402,7 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[
         f"<b>User:</b> {mention_html(member.user.id, member.user.first_name)}"
     )
     if reason:
-        log += f"\n<b>Reason:</b> {reason}"
+        log += f"\n<b>Reason:</b> <code>{html.escape(reason)}</code>"
 
     return log
 
@@ -387,7 +416,8 @@ async def unban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[
 async def selfunban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optional[str]:
     message = update.effective_message
     user = update.effective_user
-    bot, args = context.bot, context.args
+    bot, args = context.bot, (context.args or [])
+
     if user.id not in SUDO_USERS and user.id not in SARDEGNA_USERS:
         return
 
@@ -412,7 +442,7 @@ async def selfunban(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Optio
         await message.reply_text("Aren't you already in the chat??")
         return
 
-    await chat.unban_member(user.id)
+    await bot.unban_chat_member(chat_id, user.id)
     await message.reply_text("Yep, I have unbanned you.")
 
     log = (

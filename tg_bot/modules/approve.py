@@ -8,7 +8,6 @@ from telegram.helpers import mention_html
 
 import tg_bot.modules.sql.approve_sql as sql
 from tg_bot import SUDO_USERS
-from tg_bot.modules.helper_funcs.chat_status import user_admin as u_admin
 from tg_bot.modules.helper_funcs.decorators import kigcmd, kigcallback, rate_limit
 from tg_bot.modules.helper_funcs.extraction import extract_user
 from tg_bot.modules.log_channel import loggable
@@ -21,8 +20,8 @@ from ..modules.helper_funcs.anonymous import user_admin, AdminPerms
 @loggable
 async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
-    chat_title = message.chat.title
     chat = update.effective_chat
+    chat_title = chat.title
     args = context.args or []
     user = update.effective_user
 
@@ -44,18 +43,18 @@ async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ""
 
-    if sql.is_approved(message.chat_id, user_id):
+    if sql.is_approved(chat.id, user_id):
         await message.reply_text(
-            f"[{member.user.first_name}](tg://user?id={member.user.id}) is already approved in {chat_title}",
-            parse_mode=ParseMode.MARKDOWN,
+            f"{mention_html(member.user.id, member.user.first_name)} is already approved in {html.escape(chat_title)}",
+            parse_mode=ParseMode.HTML,
         )
         return ""
 
-    sql.approve(message.chat_id, user_id)
+    sql.approve(chat.id, user_id)
     await message.reply_text(
-        f"[{member.user.first_name}](tg://user?id={member.user.id}) has been approved in {chat_title}! They "
-        f"will now be ignored by automated admin actions like locks, blocklists, and antiflood.",
-        parse_mode=ParseMode.MARKDOWN,
+        f"{mention_html(member.user.id, member.user.first_name)} has been approved in {html.escape(chat_title)}! "
+        f"They will now be ignored by automated admin actions like locks, blocklists, and antiflood.",
+        parse_mode=ParseMode.HTML,
     )
     log_message = (
         f"<b>{html.escape(chat.title)}:</b>\n"
@@ -72,8 +71,8 @@ async def approve(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @loggable
 async def disapprove(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
-    chat_title = message.chat.title
     chat = update.effective_chat
+    chat_title = chat.title
     args = context.args or []
     user = update.effective_user
 
@@ -93,11 +92,11 @@ async def disapprove(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text("This user is an admin, they can't be unapproved.")
         return ""
 
-    if not sql.is_approved(message.chat_id, user_id):
+    if not sql.is_approved(chat.id, user_id):
         await message.reply_text(f"{member.user.first_name} isn't approved yet!")
         return ""
 
-    sql.disapprove(message.chat_id, user_id)
+    sql.disapprove(chat.id, user_id)
     await message.reply_text(f"{member.user.first_name} is no longer approved in {chat_title}.")
     return (
         f"<b>{html.escape(chat.title)}:</b>\n"
@@ -111,20 +110,24 @@ async def disapprove(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @rate_limit(40, 60)
 async def approved(update: Update, _: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message
-    chat_title = message.chat.title
     chat = update.effective_chat
-    msg = "The following users are approved.\n"
-    approved_users = sql.list_approved(message.chat_id)
+    chat_title = chat.title
 
-    for i in approved_users:
-        member = await chat.get_member(int(i.user_id))
-        msg += f"- `{i.user_id}`: {member.user.first_name}\n"
+    approved_users = sql.list_approved(chat.id)
 
-    if msg.endswith("approved.\n"):
+    if not approved_users:
         await message.reply_text(f"No users are approved in {chat_title}.")
         return ""
-    else:
-        await message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
+
+    msg_lines = ["The following users are approved."]
+    for i in approved_users:
+        member = await chat.get_member(int(i.user_id))
+        msg_lines.append(
+            f"- <code>{i.user_id}</code>: {mention_html(member.user.id, member.user.first_name)}"
+        )
+
+    await message.reply_text("\n".join(msg_lines), parse_mode=ParseMode.HTML)
+    return ""
 
 
 @kigcmd(command='approval', filters=filters.ChatType.GROUPS)
@@ -144,7 +147,7 @@ async def approval(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     member = await chat.get_member(int(user_id))
 
-    if sql.is_approved(message.chat_id, user_id):
+    if sql.is_approved(chat.id, user_id):
         await message.reply_text(
             f"{member.user.first_name} is an approved user. Locks, antiflood, and blocklists won't apply to them."
         )
@@ -171,9 +174,10 @@ async def unapproveall(update: Update, _: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton(text="Cancel", callback_data="unapproveall_cancel")],
         ])
         await update.effective_message.reply_text(
-            f"Are you sure you would like to unapprove ALL users in {chat.title}? This action cannot be undone.",
+            f"Are you sure you would like to unapprove ALL users in {html.escape(chat.title)}? "
+            f"This action cannot be undone.",
             reply_markup=buttons,
-            parse_mode=ParseMode.MARKDOWN,
+            parse_mode=ParseMode.HTML,
         )
 
 
@@ -190,6 +194,7 @@ async def unapproveall_btn(update: Update, _: ContextTypes.DEFAULT_TYPE):
             users = [int(i.user_id) for i in approved_users]
             for user_id in users:
                 sql.disapprove(chat.id, user_id)
+            await message.edit_text("All approved users have been unapproved.")
         elif member.status == ChatMemberStatus.ADMINISTRATOR:
             await query.answer("Only owner of the chat can do this.")
         elif member.status == ChatMemberStatus.MEMBER:

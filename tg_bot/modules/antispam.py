@@ -3,8 +3,8 @@ import time
 from datetime import datetime
 from io import BytesIO
 
-from telegram import Update, Chat, ChatPermissions
-from telegram.constants import ParseMode, ChatMemberStatus
+from telegram import Update, ChatMemberBanned
+from telegram.constants import ParseMode, ChatMemberStatus, ChatType
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import ContextTypes, filters
 from telegram.helpers import mention_html
@@ -103,7 +103,7 @@ async def gban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
         await message.reply_text("I can't seem to find this user.")
         return
 
-    if user_chat.type != "private":
+    if user_chat.type != ChatType.PRIVATE:
         await message.reply_text("That's not a user!")
         return
 
@@ -138,10 +138,10 @@ async def gban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
     datetime_fmt = "%Y-%m-%dT%H:%M"
     current_time = datetime.utcnow().strftime(datetime_fmt)
 
-    if chat.type != "private":
-        chat_origin = "<b>{} ({})</b>\n".format(html.escape(chat.title), chat.id)
+    if chat.type != ChatType.PRIVATE:
+        chat_origin = f"{html.escape(chat.title)} ({chat.id})"
     else:
-        chat_origin = "<b>{}</b>\n".format(chat.id)
+        chat_origin = f"{chat.id}"
 
     log_message = (
         f"#GBANNED\n"
@@ -153,10 +153,10 @@ async def gban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
     )
 
     if reason:
-        if chat.type == Chat.SUPERGROUP and chat.username:
+        if chat.type == ChatType.SUPERGROUP and chat.username:
             log_message += f'\n<b>Reason:</b> <a href="https://telegram.me/{chat.username}/{message.message_id}">{reason}</a>'
         else:
-            log_message += f"\n<b>Reason:</b> <code>{reason}</code>"
+            log_message += f"\n<b>Reason:</b> <code>{html.escape(reason)}</code>"
 
     if GBAN_LOGS:
         try:
@@ -251,7 +251,7 @@ async def ungban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcer
         return
 
     user_chat = await bot.get_chat(user_id)
-    if user_chat.type != "private":
+    if user_chat.type != ChatType.PRIVATE:
         await message.reply_text("That's not a user!")
         return
 
@@ -265,10 +265,10 @@ async def ungban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcer
     datetime_fmt = "%Y-%m-%dT%H:%M"
     current_time = datetime.utcnow().strftime(datetime_fmt)
 
-    if chat.type != "private":
-        chat_origin = f"<b>{html.escape(chat.title)} ({chat.id})</b>\n"
+    if chat.type != ChatType.PRIVATE:
+        chat_origin = f"{html.escape(chat.title)} ({chat.id})"
     else:
-        chat_origin = f"<b>{chat.id}</b>\n"
+        chat_origin = f"{chat.id}"
 
     log_message = (
         f"#UNGBANNED\n"
@@ -302,7 +302,7 @@ async def ungban(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcer
 
         try:
             member = await bot.get_chat_member(chat_id, user_id)
-            if member.status == ChatMemberStatus.KICKED:
+            if isinstance(member, ChatMemberBanned):
                 await bot.unban_chat_member(chat_id, user_id)
                 ungbanned_chats += 1
 
@@ -442,10 +442,11 @@ async def gbanstat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.effective_message.reply_text(
             "Give me some arguments to choose a setting! on/off, yes/no!\n\n"
-            "Your current setting is: {}\n"
+            "Your current setting is: <code>{}</code>\n"
             "When True, any gbans that happen will also happen in your group. "
             "When False, they won't, leaving you at the possible mercy of "
-            "spammers.".format(sql.does_chat_gban(update.effective_chat.id))
+            "spammers.".format(sql.does_chat_gban(update.effective_chat.id)),
+            parse_mode=ParseMode.HTML,
         )
 
 
@@ -486,7 +487,7 @@ def __migrate__(old_chat_id, new_chat_id):
 
 
 def __chat_settings__(chat_id, user_id):
-    return f"This chat is enforcing *gbans*: `{sql.does_chat_gban(chat_id)}`."
+    return "This chat is enforcing gbans: <code>{}</code>.".format(sql.does_chat_gban(chat_id))
 
 
 from tg_bot.modules.language import gs
