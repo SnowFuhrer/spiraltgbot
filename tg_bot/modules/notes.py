@@ -1,4 +1,5 @@
 import re, ast, random
+import html
 from io import BytesIO
 from typing import Optional
 
@@ -17,7 +18,7 @@ from telegram import (
 )
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
-from telegram.helpers import escape_markdown, mention_markdown
+from telegram.helpers import mention_html
 from telegram.ext import (
     ContextTypes,
     filters,
@@ -68,8 +69,7 @@ async def get(update: Update, context: ContextTypes.DEFAULT_TYPE, notename, show
                     if excp.message != "Message to forward not found":
                         raise
                     await message.reply_text(
-                        "This message seems to have been lost - I'll remove it "
-                        "from your notes list.",
+                        "This message seems to have been lost - I'll remove it from your notes list.",
                     )
                     sql.rm_note(note_chat_id, notename)
             else:
@@ -81,10 +81,7 @@ async def get(update: Update, context: ContextTypes.DEFAULT_TYPE, notename, show
                     if excp.message != "Message to forward not found":
                         raise
                     await message.reply_text(
-                        "Looks like the original sender of this note has deleted "
-                        "their message - sorry! Get your bot admin to start using a "
-                        "message dump to avoid this. I'll remove this note from "
-                        "your saved notes.",
+                        "Looks like the original sender of this note has deleted their message - sorry! Get your bot admin to start using a message dump to avoid this. I'll remove this note from your saved notes.",
                     )
                     sql.rm_note(note_chat_id, notename)
         else:
@@ -106,40 +103,41 @@ async def get(update: Update, context: ContextTypes.DEFAULT_TYPE, notename, show
                     text = random.choice(split) if all(split) else valid_format
                 else:
                     text = valid_format
+
+                # Build replacement fields (HTML-safe)
+                first_name = html.escape(message.from_user.first_name or "")
+                last_raw = message.from_user.last_name or message.from_user.first_name or ""
+                last_name = html.escape(last_raw)
+                fullname = html.escape(
+                    " ".join([message.from_user.first_name, message.from_user.last_name])
+                    if message.from_user.last_name
+                    else (message.from_user.first_name or "")
+                )
+
+                if message.from_user.username:
+                    username_val = html.escape("@" + message.from_user.username)
+                else:
+                    username_val = mention_html(message.from_user.id, message.from_user.first_name or "")
+
+                mention_val = mention_html(message.from_user.id, message.from_user.first_name or "")
+                chatname_val = html.escape(
+                    message.chat.title if message.chat.type != "private" else (message.from_user.first_name or "")
+                )
+
                 text = text.format(
-                    first=escape_markdown(message.from_user.first_name, version=2),
-                    last=escape_markdown(
-                        message.from_user.last_name or message.from_user.first_name, version=2
-                    ),
-                    fullname=escape_markdown(
-                        " ".join(
-                            [message.from_user.first_name, message.from_user.last_name]
-                            if message.from_user.last_name
-                            else [message.from_user.first_name],
-                        ),
-                        version=2,
-                    ),
-                    username="@" + message.from_user.username
-                    if message.from_user.username
-                    else mention_markdown(
-                        message.from_user.id, message.from_user.first_name, version=2
-                    ),
-                    mention=mention_markdown(
-                        message.from_user.id, message.from_user.first_name, version=2
-                    ),
-                    chatname=escape_markdown(
-                        message.chat.title
-                        if message.chat.type != "private"
-                        else message.from_user.first_name,
-                        version=2,
-                    ),
+                    first=first_name,
+                    last=last_name,
+                    fullname=fullname,
+                    username=username_val,
+                    mention=mention_val,
+                    chatname=chatname_val,
                     id=message.from_user.id,
                 )
             else:
                 text = ""
 
             keyb = []
-            parseMode = ParseMode.MARKDOWN_V2
+            parseMode = ParseMode.HTML
             buttons = sql.get_buttons(note_chat_id, notename)
             if no_format:
                 parseMode = None
@@ -223,21 +221,16 @@ async def get(update: Update, context: ContextTypes.DEFAULT_TYPE, notename, show
             except BadRequest as excp:
                 if excp.message == "Entity_mention_user_invalid":
                     await message.reply_text(
-                        "Looks like you tried to mention someone I've never seen before. If you really "
-                        "want to mention them, forward one of their messages to me, and I'll be able "
-                        "to tag them!"
+                        "Looks like you tried to mention someone I've never seen before. If you really want to mention them, forward one of their messages to me, and I'll be able to tag them!"
                     )
                 elif FILE_MATCHER.match(note.value):
                     await message.reply_text(
-                        "This note was an incorrectly imported file from another bot - I can't use "
-                        "it. If you really need it, you'll have to save it again. In "
-                        "the meantime, I'll remove it from your notes list."
+                        "This note was an incorrectly imported file from another bot - I can't use it. If you really need it, you'll have to save it again. In the meantime, I'll remove it from your notes list."
                     )
                     sql.rm_note(chat_id, notename)
                 else:
                     await message.reply_text(
-                        "This note could not be sent, as it is incorrectly formatted. Ask in "
-                        f"@spiralsupport if you can't figure out why!"
+                        "This note could not be sent, as it is incorrectly formatted. Ask in @spiralsupport if you can't figure out why!"
                     )
                     log.exception(
                         "Could not parse message #%s in chat %s", notename, str(note_chat_id)
@@ -246,6 +239,7 @@ async def get(update: Update, context: ContextTypes.DEFAULT_TYPE, notename, show
         return
     elif show_none:
         await message.reply_text("This note doesn't exist")
+
 
 @kigcmd(command="get")
 @connection_status
@@ -287,6 +281,7 @@ async def slash_get(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except IndexError:
         await update.effective_message.reply_text("Wrong Note ID 😾")
 
+
 @kigcmd(command='save')
 @user_admin(AdminPerms.CAN_CHANGE_INFO)
 @connection_status
@@ -309,26 +304,25 @@ async def save(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     await msg.reply_text(
-        f"Added `{note_name}`.\nGet it with /get `{note_name}`, or `#{note_name}`",
-        parse_mode=ParseMode.MARKDOWN_V2,
+        "Added <code>{}</code>.\nGet it with /get <code>{}</code>, or <code>#{}</code>".format(
+            html.escape(note_name),
+            html.escape(note_name),
+            html.escape(note_name),
+        ),
+        parse_mode=ParseMode.HTML,
     )
 
     if msg.reply_to_message and msg.reply_to_message.from_user and msg.reply_to_message.from_user.is_bot:
         if text:
             await msg.reply_text(
-                "Seems like you're trying to save a message from a bot. Unfortunately, "
-                "bots can't forward bot messages, so I can't save the exact message. "
-                "\nI'll save all the text I can, but if you want more, you'll have to "
-                "forward the message yourself, and then save it."
+                "Seems like you're trying to save a message from a bot. Unfortunately, bots can't forward bot messages, so I can't save the exact message. \nI'll save all the text I can, but if you want more, you'll have to forward the message yourself, and then save it."
             )
         else:
             await msg.reply_text(
-                "Bots are kinda handicapped by telegram, making it hard for bots to "
-                "interact with other bots, so I can't save this message "
-                "like I usually would - do you mind forwarding it and "
-                "then saving that new message? Thanks!"
+                "Bots are kinda handicapped by telegram, making it hard for bots to interact with other bots, so I can't save this message like I usually would - do you mind forwarding it and then saving that new message? Thanks!"
             )
         return
+
 
 @kigcmd(command='clear')
 @user_admin(AdminPerms.CAN_CHANGE_INFO)
@@ -370,9 +364,11 @@ async def clearall(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]
         )
         await update.effective_message.reply_text(
-            f"Are you sure you would like to clear ALL notes in {chat.title}? This action cannot be undone.",
+            "Are you sure you would like to clear ALL notes in {}? This action cannot be undone.".format(
+                html.escape(chat.title or "")
+            ),
             reply_markup=buttons,
-            parse_mode=ParseMode.MARKDOWN_V2,
+            parse_mode=ParseMode.HTML,
         )
 
 
@@ -408,6 +404,7 @@ async def clearall_btn(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if member.status == "member":
             await query.answer("You need to be admin to do this.")
 
+
 @kigcmd(command=["notes", "saved"])
 @connection_status
 @rate_limit(40, 60)
@@ -415,22 +412,20 @@ async def list_notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     note_list = sql.get_all_chat_notes(chat_id)
     notes = len(note_list) + 1
-    msg = "Get note by `/notenumber` or `#notename` \n\n  *ID*    *Note* \n"
+    msg = "Get note by <code>/notenumber</code> or <code>#notename</code>\n\n<b>ID</b> — <b>Note</b>\n"
     for note_id, note in zip(range(1, notes), note_list):
-        if note_id < 10:
-            note_name = f"`{note_id:2}.`  `#{(note.name.lower())}`\n"
-        else:
-            note_name = f"`{note_id}.`  `#{(note.name.lower())}`\n"
-        if len(msg) + len(note_name) > MESSAGE_CHAR_LIMIT:
-            await update.effective_message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
+        note_line = "<code>{}.</code>  <code>#{}</code>\n".format(
+            note_id, html.escape(note.name.lower())
+        )
+        if len(msg) + len(note_line) > MESSAGE_CHAR_LIMIT:
+            await update.effective_message.reply_text(msg, parse_mode=ParseMode.HTML)
             msg = ""
-        msg += note_name
+        msg += note_line
 
     if not note_list:
         await update.effective_message.reply_text("No notes in this chat!")
-
     elif len(msg) != 0:
-        await update.effective_message.reply_text(msg, parse_mode=ParseMode.MARKDOWN_V2)
+        await update.effective_message.reply_text(msg, parse_mode=ParseMode.HTML)
 
 
 async def __import_data__(chat_id, data):  # sourcery no-metrics
@@ -534,9 +529,7 @@ async def __import_data__(chat_id, data):  # sourcery no-metrics
                 chat_id,
                 document=output,
                 caption=(
-                    "These files/photos failed to import due to originating "
-                    "from another bot. This is a telegram API restriction, and can't "
-                    "be avoided. Sorry for the inconvenience!"
+                    "These files/photos failed to import due to originating from another bot. This is a telegram API restriction, and can't be avoided. Sorry for the inconvenience!"
                 ),
             )
 
@@ -551,7 +544,8 @@ def __migrate__(old_chat_id, new_chat_id):
 
 def __chat_settings__(chat_id, user_id):
     notes = sql.get_all_chat_notes(chat_id)
-    return f"There are `{len(notes)}` notes in this chat."
+    return f"There are <code>{len(notes)}</code> notes in this chat."
+
 
 from tg_bot.modules.language import gs
 
