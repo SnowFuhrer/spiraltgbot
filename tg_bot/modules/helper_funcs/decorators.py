@@ -12,6 +12,7 @@ from telegram.ext import (
     MessageHandler,
     CallbackQueryHandler,
     InlineQueryHandler,
+    ChosenInlineResultHandler,
     ContextTypes,
     filters as tg_filters,
 )
@@ -128,7 +129,6 @@ class KigyoTelegramHandler:
 
             # Prefer your disableable handler if it’s PTB20-ready; otherwise fall back to CustomCommandHandler.
             if can_disable and HAS_DISABLEABLE and DisableAbleCommandHandler is not None:
-                # Your DisableAbleCommandHandler must be ported to PTB 20 (async, no pass_args/run_async)
                 handler = DisableAbleCommandHandler(
                     commands,
                     func,
@@ -161,7 +161,6 @@ class KigyoTelegramHandler:
             message_filter = pattern if pattern is not None else tg_filters.ALL
 
             if can_disable and HAS_DISABLEABLE and DisableAbleMessageHandler is not None:
-                # Your DisableAbleMessageHandler must be ported to PTB 20 (async)
                 handler = DisableAbleMessageHandler(
                     message_filter,
                     func,
@@ -202,6 +201,18 @@ class KigyoTelegramHandler:
             return func
         return decorator
 
+    def chosen(self, block: bool = False):
+        """
+        Decorator to register a ChosenInlineResultHandler.
+        Fires when a user selects (sends) one of your inline results.
+        """
+        def decorator(func: Callable):
+            handler = ChosenInlineResultHandler(func, block=block)
+            self._add_handler(handler)
+            logging.debug(f"[KIGCHOSEN] Loaded chosen_inline_result handler for function {func.__name__}")
+            return func
+        return decorator
+
 
 kigyo_handler = KigyoTelegramHandler(dispatcher)
 
@@ -209,3 +220,4 @@ kigcmd = kigyo_handler.command
 kigmsg = kigyo_handler.message
 kigcallback = kigyo_handler.callbackquery
 kiginline = kigyo_handler.inlinequery
+kigchosen = kigyo_handler.chosen
