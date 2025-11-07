@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
 
-from tg_bot import dispatcher
+from tg_bot import application
 from tg_bot.modules.helper_funcs.chat_status import dev_plus
 
 DEBUG_MODE = False
@@ -44,7 +44,7 @@ def debug(update: Update, context: CallbackContext):
 
 
 DEBUG_HANDLER = CommandHandler("debug", debug)
-dispatcher.add_handler(DEBUG_HANDLER)
+application.add_handler(DEBUG_HANDLER)
 
 __mod_name__ = "Debug"
 __command_list__ = ["debug"]

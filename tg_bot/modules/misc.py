@@ -190,9 +190,10 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
                 pfp = BytesIO()
                 await _file.download_to_memory(out=pfp)
                 pfp.seek(0)
+
                 await message.reply_document(
-                    document=pfp,
-                    filename=f'{user.id}.jpg',
+                    document=bio,
+                    filename=f"{user.id}.jpg",
                     caption=text,
                     parse_mode=ParseMode.HTML,
                 )
@@ -210,8 +211,10 @@ async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):  # sourcery 
                 bio = BytesIO()
                 await _file.download_to_memory(out=bio)
                 bio.seek(0)
+
                 await message.reply_document(
                     document=bio,
+                    filename=f"{user.id}.jpg",
                     caption=text,
                     parse_mode=ParseMode.HTML,
                 )

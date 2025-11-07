@@ -3,12 +3,13 @@ from io import BytesIO
 from asyncio import sleep
 
 import tg_bot.modules.sql.users_sql as sql
-from tg_bot import DEV_USERS, log, OWNER_ID, dispatcher
+from tg_bot import DEV_USERS, log, OWNER_ID, application
 from tg_bot.modules.helper_funcs.chat_status import dev_plus, sudo_plus
 from tg_bot.modules.sql.users_sql import get_all_users
 from telegram import Update
 from telegram.error import BadRequest, TelegramError
 from telegram.ext import (
+    Application,
     ContextTypes,
     CommandHandler,
     MessageHandler,
@@ -320,16 +321,16 @@ CHAT_CHECKER_HANDLER = MessageHandler(
     filters.ALL & filters.ChatType.GROUPS & ~filters.User(777000), chat_checker
 )
 
-dispatcher.add_handler(
+application.add_handler(
     ChatMemberHandler(
         welcomeFilter, ChatMemberHandler.CHAT_MEMBER
     ),
     group=110,
 )
 
-dispatcher.add_handler(USER_HANDLER, USERS_GROUP)
-dispatcher.add_handler(BROADCAST_HANDLER)
-dispatcher.add_handler(CHAT_CHECKER_HANDLER, CHAT_GROUP)
+application.add_handler(USER_HANDLER, USERS_GROUP)
+application.add_handler(BROADCAST_HANDLER)
+application.add_handler(CHAT_CHECKER_HANDLER, CHAT_GROUP)
 
 __mod_name__ = "Users"
 __handlers__ = [(USER_HANDLER, USERS_GROUP), BROADCAST_HANDLER]

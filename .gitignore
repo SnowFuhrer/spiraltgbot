@@ -12,3 +12,5 @@ tg_bot/modules/audio_segment.py
 tg_bot/modules/helper_funcs/segmenter.py
 tg_bot/modules/ytsh.py
 tg_bot/modules/sql/songstats_sql.py
+tg_bot/modules/helper_funcs/*search.py
+

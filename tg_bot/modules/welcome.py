@@ -36,7 +36,7 @@ from tg_bot import (
     SUPPORT_USERS,
     SARDEGNA_USERS,
     WHITELIST_USERS,
-    dispatcher,
+    application,
 )
 from tg_bot.modules.helper_funcs.chat_status import (
     is_user_ban_protected,
@@ -1144,21 +1144,21 @@ SERVICE_MSG_HANDLER = MessageHandler(
     handleCleanService,
 )
 
-dispatcher.add_handler(WELC_PREF_HANDLER)
-dispatcher.add_handler(GOODBYE_PREF_HANDLER)
-dispatcher.add_handler(SET_WELCOME)
-dispatcher.add_handler(SET_GOODBYE)
-dispatcher.add_handler(RESET_WELCOME)
-dispatcher.add_handler(RESET_GOODBYE)
-dispatcher.add_handler(CLEAN_WELCOME)
-dispatcher.add_handler(WELCOME_HELP)
-dispatcher.add_handler(WELCOMEMUTE_HANDLER)
-dispatcher.add_handler(CLEAN_SERVICE_HANDLER)
-dispatcher.add_handler(BUTTON_VERIFY_HANDLER)
-dispatcher.add_handler(CAPTCHA_BUTTON_VERIFY_HANDLER)
-dispatcher.add_handler(WELCOME_MUTE_HELP)
-dispatcher.add_handler(CHAT_MEMBER_HANDLER)
-dispatcher.add_handler(SERVICE_MSG_HANDLER)
+application.add_handler(WELC_PREF_HANDLER)
+application.add_handler(GOODBYE_PREF_HANDLER)
+application.add_handler(SET_WELCOME)
+application.add_handler(SET_GOODBYE)
+application.add_handler(RESET_WELCOME)
+application.add_handler(RESET_GOODBYE)
+application.add_handler(CLEAN_WELCOME)
+application.add_handler(WELCOME_HELP)
+application.add_handler(WELCOMEMUTE_HANDLER)
+application.add_handler(CLEAN_SERVICE_HANDLER)
+application.add_handler(BUTTON_VERIFY_HANDLER)
+application.add_handler(CAPTCHA_BUTTON_VERIFY_HANDLER)
+application.add_handler(WELCOME_MUTE_HELP)
+application.add_handler(CHAT_MEMBER_HANDLER)
+application.add_handler(SERVICE_MSG_HANDLER)
 
 __mod_name__ = "Greetings"
 __command_list__ = []

@@ -2,7 +2,7 @@ import html
 import re
 from typing import Optional
 
-from tg_bot import SARDEGNA_USERS, WHITELIST_USERS, dispatcher
+from tg_bot import SARDEGNA_USERS, WHITELIST_USERS, application
 from tg_bot.modules.disable import DisableAbleCommandHandler
 from tg_bot.modules.helper_funcs.chat_status import (
     bot_admin,
@@ -519,13 +519,13 @@ WARN_STRENGTH_HANDLER = CommandHandler(
     "strongwarn", set_warn_strength, filters=filters.ChatType.GROUPS
 )
 
-dispatcher.add_handler(WARN_HANDLER)
-dispatcher.add_handler(CALLBACK_QUERY_HANDLER)
-dispatcher.add_handler(RESET_WARN_HANDLER)
-dispatcher.add_handler(MYWARNS_HANDLER)
-dispatcher.add_handler(ADD_WARN_HANDLER)
-dispatcher.add_handler(RM_WARN_HANDLER)
-dispatcher.add_handler(LIST_WARN_HANDLER)
-dispatcher.add_handler(WARN_LIMIT_HANDLER)
-dispatcher.add_handler(WARN_STRENGTH_HANDLER)
-dispatcher.add_handler(WARN_FILTER_HANDLER, WARN_HANDLER_GROUP)
+application.add_handler(WARN_HANDLER)
+application.add_handler(CALLBACK_QUERY_HANDLER)
+application.add_handler(RESET_WARN_HANDLER)
+application.add_handler(MYWARNS_HANDLER)
+application.add_handler(ADD_WARN_HANDLER)
+application.add_handler(RM_WARN_HANDLER)
+application.add_handler(LIST_WARN_HANDLER)
+application.add_handler(WARN_LIMIT_HANDLER)
+application.add_handler(WARN_STRENGTH_HANDLER)
+application.add_handler(WARN_FILTER_HANDLER, WARN_HANDLER_GROUP)

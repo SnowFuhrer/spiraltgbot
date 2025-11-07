@@ -1,6 +1,6 @@
 import html
 
-from tg_bot import ALLOW_EXCL, dispatcher
+from tg_bot import ALLOW_EXCL, application
 from tg_bot.modules.disable import DisableAbleCommandHandler  # optional; may be unused
 from tg_bot.modules.helper_funcs.chat_status import (
     bot_can_delete,
@@ -275,13 +275,13 @@ CLEAN_BLUE_TEXT_HANDLER = MessageHandler(
     clean_blue_text_must_click,
 )
 
-dispatcher.add_handler(SET_CLEAN_BLUE_TEXT_HANDLER)
-dispatcher.add_handler(ADD_CLEAN_BLUE_TEXT_HANDLER)
-dispatcher.add_handler(REMOVE_CLEAN_BLUE_TEXT_HANDLER)
-dispatcher.add_handler(ADD_CLEAN_BLUE_TEXT_GLOBAL_HANDLER)
-dispatcher.add_handler(REMOVE_CLEAN_BLUE_TEXT_GLOBAL_HANDLER)
-dispatcher.add_handler(LIST_CLEAN_BLUE_TEXT_HANDLER)
-dispatcher.add_handler(CLEAN_BLUE_TEXT_HANDLER, BLUE_TEXT_CLEAN_GROUP)
+application.add_handler(SET_CLEAN_BLUE_TEXT_HANDLER)
+application.add_handler(ADD_CLEAN_BLUE_TEXT_HANDLER)
+application.add_handler(REMOVE_CLEAN_BLUE_TEXT_HANDLER)
+application.add_handler(ADD_CLEAN_BLUE_TEXT_GLOBAL_HANDLER)
+application.add_handler(REMOVE_CLEAN_BLUE_TEXT_GLOBAL_HANDLER)
+application.add_handler(LIST_CLEAN_BLUE_TEXT_HANDLER)
+application.add_handler(CLEAN_BLUE_TEXT_HANDLER, BLUE_TEXT_CLEAN_GROUP)
 
 __mod_name__ = "Cleaner"
 __handlers__ = [

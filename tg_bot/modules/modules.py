@@ -47,10 +47,10 @@ async def load(update: Update, context: CallbackContext):
         handlers = imported_module.__handlers__
         for handler in handlers:
             if type(handler) != tuple:
-                dispatcher.add_handler(handler)
+                application.add_handler(handler)
             else:
                 handler_name, priority = handler
-                dispatcher.add_handler(handler_name, priority)
+                application.add_handler(handler_name, priority)
     else:
         IMPORTED.pop(imported_module.__mod_name__.lower())
         await load_messasge.edit_text("The module cannot be loaded.")

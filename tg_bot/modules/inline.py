@@ -6,6 +6,7 @@ from platform import python_version
 from typing import List
 from uuid import uuid4
 from tg_bot.modules.songsearch import inline_songsearch_router
+from tg_bot.modules.ltc_inline import inline_ltc_router
 
 import requests
 from telegram import (
@@ -50,6 +51,7 @@ async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         ".song": inline_songsearch_router,
         ".songsearch": inline_songsearch_router,
         ".hymn": inline_songsearch_router,
+        ".ltc": inline_ltc_router,
     }
 
     cmd = query.split(" ", 1)[0] if query else ""
@@ -60,6 +62,13 @@ async def inlinequery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     # Help cards
     help_cards = [
+        {
+            "title": "Sheet Music Search",
+            "description": "Searches songs on Stanza, PrairieView Press and The Acappella Store(WIP).",
+            "message_text": "Click below to search",
+            "thumbnail_url": "https://res.cloudinary.com/dibpndwxe/image/upload/v1761714672/photo_2025-10-28_00-20-47_vnvpdm.jpg",
+            "switch_text": ".song",
+        },
         {
             "title": "Account info on Spiral",
             "description": "Look up a Telegram account in Spiral database",
@@ -189,8 +198,8 @@ async def about(_: str, update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     about_text = (
         f"<b>Spiral (@{context.bot.username})</b>\n"
-        f"Maintained by <a href='https://t.me/dank_as_fuck'>Dank-del</a>\n"
-        f"Built with ❤️ using python-telegram-bot v{str(TG_VER)}\n"
+        f"Maintained by <a href='https://t.me/snowfuhrer'>SnowFuhrer</a>\n"
+        f"Built with ❤️  using python-telegram-bot v{str(TG_VER)}\n"
         f"Running on Python {python_version()}"
     )
 
@@ -198,15 +207,15 @@ async def about(_: str, update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         [
             [
                 InlineKeyboardButton(text="Support", url="https://t.me/spiralsupport"),
-                InlineKeyboardButton(text="Channel", url="https://t.me/KigyoUpdates"),
+                InlineKeyboardButton(text="Channel", url="https://t.me/spiralsupport"),
                 InlineKeyboardButton(text="Ping", callback_data="pingCB"),
             ],
             [
+#                InlineKeyboardButton(
+#                    text="GitLab", url="https://www.gitlab.com/Dank-del/EnterpriseALRobot"
+#                ),
                 InlineKeyboardButton(
-                    text="GitLab", url="https://www.gitlab.com/Dank-del/EnterpriseALRobot"
-                ),
-                InlineKeyboardButton(
-                    text="GitHub", url="https://github.com/AnimeKaizoku/EnterpriseALRobot/"
+                    text="GitHub", url="https://github.com/SnowFuhrer/spiraltgbot/"
                 ),
             ],
         ]

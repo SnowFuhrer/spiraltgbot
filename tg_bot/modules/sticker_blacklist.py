@@ -8,7 +8,7 @@ from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
 from telegram.helpers import mention_html, mention_markdown
 
 import tg_bot.modules.sql.blsticker_sql as sql
-from tg_bot import log as LOGGER, dispatcher
+from tg_bot import log as LOGGER, application
 from tg_bot.modules.connection import connected
 from tg_bot.modules.disable import DisableAbleCommandHandler
 from tg_bot.modules.helper_funcs.alternate import send_message
@@ -521,8 +521,8 @@ BLACKLIST_STICKER_DEL_HANDLER = MessageHandler(
     filters.Sticker.ALL & filters.ChatType.GROUPS, del_blackliststicker
 )
 
-dispatcher.add_handler(BLACKLIST_STICKER_HANDLER)
-dispatcher.add_handler(ADDBLACKLIST_STICKER_HANDLER)
-dispatcher.add_handler(UNBLACKLIST_STICKER_HANDLER)
-dispatcher.add_handler(BLACKLISTMODE_HANDLER)
-dispatcher.add_handler(BLACKLIST_STICKER_DEL_HANDLER)
+application.add_handler(BLACKLIST_STICKER_HANDLER)
+application.add_handler(ADDBLACKLIST_STICKER_HANDLER)
+application.add_handler(UNBLACKLIST_STICKER_HANDLER)
+application.add_handler(BLACKLISTMODE_HANDLER)
+application.add_handler(BLACKLIST_STICKER_DEL_HANDLER)

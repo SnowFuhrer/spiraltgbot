@@ -20,6 +20,7 @@ from telegram.ext import (
 from tg_bot import REDIS_HOST, REDIS_PORT, REDIS_DB, REDIS_PASSWORD, dispatcher
 from tg_bot.modules.helper_funcs.handlers import CustomCommandHandler
 
+
 # If you have PTB20-compatible disable handlers, keep these imports.
 # Otherwise, the fallback below uses regular handlers.
 try:
@@ -102,10 +103,16 @@ def rate_limit(messages_per_window: int, window_seconds: int):
 
 class KigyoTelegramHandler:
     """
-    PTB 20+ compatible decorator helper to register handlers on the Application.
+    PTB 20+ compatible decorator helper to register handlers on the Application
+    (or a DispatcherShim exposing add_handler/remove_handler).
     """
     def __init__(self, dispatcher: Application):
         self._dispatcher = dispatcher
+
+    @property
+    def application(self) -> Application:
+        # Back-compat attribute name used elsewhere in the codebase
+        return self._dispatcher
 
     def _add_handler(self, handler, group: Optional[int] = None):
         if group is not None:
@@ -144,6 +151,7 @@ class KigyoTelegramHandler:
                     block=block,
                 )
 
+            # FIX: call the correct helper
             self._add_handler(handler, group)
             logging.debug(f"[KIGCMD] Loaded handler {commands} for function {func.__name__}")
             return func
