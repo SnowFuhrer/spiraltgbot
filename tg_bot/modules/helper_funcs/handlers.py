@@ -10,10 +10,10 @@ from tg_bot import DEV_USERS, SUDO_USERS, WHITELIST_USERS, SUPPORT_USERS, SARDEG
 from pyrate_limiter import (
     BucketFullException,
     Duration,
-    RequestRate,
+    Rate,
     Limiter,
-    MemoryListBucket,
 )
+from pyrate_limiter.buckets.in_memory_bucket import InMemoryBucket
 
 try:
     from tg_bot import CUSTOM_CMD
@@ -33,18 +33,14 @@ class AntiSpam:
             + (SARDEGNA_USERS or [])
         )
         # Values are experimental
-        Duration.CUSTOM = 15  # 15 seconds
-        self.sec_limit = RequestRate(6, Duration.CUSTOM)     # 6 / 15s
-        self.min_limit = RequestRate(20, Duration.MINUTE)    # 20 / minute
-        self.hour_limit = RequestRate(100, Duration.HOUR)    # 100 / hour
-        self.daily_limit = RequestRate(1000, Duration.DAY)   # 1000 / day
-        self.limiter = Limiter(
-            self.sec_limit,
-            self.min_limit,
-            self.hour_limit,
-            self.daily_limit,
-            bucket_class=MemoryListBucket,
-        )
+        self.sec_limit = Rate(6, 15)                   # 6 / 15s
+        self.min_limit = Rate(20, Duration.MINUTE)     # 20 / minute
+        self.hour_limit = Rate(100, Duration.HOUR)     # 100 / hour
+        self.daily_limit = Rate(1000, Duration.DAY)    # 1000 / day
+
+        rates = [self.sec_limit, self.min_limit, self.hour_limit, self.daily_limit]
+        bucket = InMemoryBucket(rates)
+        self.limiter = Limiter(bucket)
 
     def check_user(self, user_id: Optional[int]) -> bool:
         """
