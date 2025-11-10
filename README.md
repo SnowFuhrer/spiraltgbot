@@ -1,11 +1,10 @@
-![Enterprise]
 # Spiral
-!!!!!Almost completely broken as I work on the new ptb22 base!!!!
 A modular telegram Python bot running on python3 with an SQLalchemy database.
 
 It can be found on telegram as [Spiral](https://t.me/enrapturedoverwatch_bot).
-The Support group can be reached out to at [Spiral Support](https://t.me/spiralsupport), where you can ask for help setting up our bot in your group, discover/request new features, report bugs, and stay in the loop whenever a new update is available.
-Please note that this is a modified and not necessarily a very general group friendly version of [Kiygo](https://github.com/AnimeKaizoku/EnterpriseALRobot), and as such I recommend you to use that one.
+My goal is to create a group management platform to run numerous functions that are not yet upload to here. Perhaps in the future. A secondary goal was to make something that can run on the latest packages to avoid the dependency hell working with old ones.
+Please report bugs to [Spiral Support](https://t.me/spiralsupport), where you can also ask for help setting up our bot in your group, and general enquiries, maybe ask new features.
+Heavily modified version of [Kiygo](https://github.com/AnimeKaizoku/EnterpriseALRobot)
 
 ## Setting up the bot (Read this before trying to use!):
 
