@@ -23,7 +23,8 @@ from telegram.ext import (
     ApplicationHandlerStop,
     filters,
 )
-from html import escape as html_escape
+from telegram.helpers import escape_markdown
+
 from tg_bot import (
     KInit,
     dispatcher,  # Application instance (compat alias)
@@ -98,7 +99,7 @@ async def send_help(chat_id: int, text: str, keyboard: InlineKeyboardMarkup | No
         kb = paginate_modules(0, HELPABLE, "help")
         keyboard = InlineKeyboardMarkup(kb)
     await dispatcher.bot.send_message(
-        chat_id=chat_id, text=text, parse_mode=ParseMode.HTML, reply_markup=keyboard
+        chat_id=chat_id, text=text, parse_mode=ParseMode.MARKDOWN, reply_markup=keyboard
     )
 
 
@@ -117,11 +118,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         first_name = update.effective_user.first_name
         await update.effective_message.edit_text(
             text=gs(chat.id, "pm_start_text").format(
-                html_escape(first_name),
-                html_escape(context.bot.first_name),
+                escape_markdown(first_name),
+                escape_markdown(context.bot.first_name),
                 OWNER_ID,
             ),
-            parse_mode=ParseMode.HTML,
+            parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
@@ -207,11 +208,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             first_name = update.effective_user.first_name
             await update.effective_message.reply_text(
                 text=gs(chat.id, "pm_start_text").format(
-                    html_escape(first_name),
-                    html_escape(context.bot.first_name),
+                    escape_markdown(first_name),
+                    escape_markdown(context.bot.first_name),
                     OWNER_ID,
                 ),
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup(
                     [
                         [
@@ -288,7 +289,7 @@ async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             await query.message.edit_text(
                 text=text,
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup(help_buttons),
             )
 
@@ -297,7 +298,7 @@ async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             kb = paginate_modules(curr_page - 1, HELPABLE, "help")
             await query.message.edit_text(
                 text=gs(chat.id, "pm_help_text"),
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup(kb),
             )
 
@@ -306,7 +307,7 @@ async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             kb = paginate_modules(next_page + 1, HELPABLE, "help")
             await query.message.edit_text(
                 text=gs(chat.id, "pm_help_text"),
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup(kb),
             )
 
@@ -314,7 +315,7 @@ async def help_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             kb = paginate_modules(0, HELPABLE, "help")
             await query.message.edit_text(
                 text=gs(chat.id, "pm_help_text"),
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup(kb),
             )
 
@@ -400,19 +401,19 @@ async def send_settings(chat_id: int, user_id: int, user: bool = False):
     if user:
         if USER_SETTINGS:
             settings = "\n\n".join(
-                "<b>{}</b>:\n{}".format(mod.__mod_name__, mod.__user_settings__(user_id))
+                "*{}*:\n{}".format(mod.__mod_name__, mod.__user_settings__(user_id))
                 for mod in USER_SETTINGS.values()
             )
             await dispatcher.bot.send_message(
                 user_id,
                 "These are your current settings:\n\n" + settings,
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
             )
         else:
             await dispatcher.bot.send_message(
                 user_id,
                 "Seems like there aren't any user specific settings available :'(",
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
             )
 
     elif CHAT_SETTINGS:
@@ -431,7 +432,7 @@ async def send_settings(chat_id: int, user_id: int, user: bool = False):
             user_id,
             "Seems like there aren't any chat settings available :'(\nSend this "
             "in a group chat you're admin in to find its current settings!",
-            parse_mode=ParseMode.HTML,
+            parse_mode=ParseMode.MARKDOWN,
         )
 
 
@@ -452,11 +453,11 @@ async def settings_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             module = mod_match.group(2)
             chat = await bot.get_chat(chat_id)
             text = "*{}* has the following settings for the *{}* module:\n\n".format(
-                html_escape(chat.title), CHAT_SETTINGS[module].__mod_name__
+                escape_markdown(chat.title), CHAT_SETTINGS[module].__mod_name__
             ) + CHAT_SETTINGS[module].__chat_settings__(chat_id, user.id)
             await query.message.reply_text(
                 text=text,
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup(
                     [
                         [
@@ -496,9 +497,9 @@ async def settings_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat = await bot.get_chat(chat_id)
             await query.message.reply_text(
                 text="Hi there! There are quite a few settings for {} - go ahead and pick what you're interested in.".format(
-                    html_escape(chat.title)
+                    escape_markdown(chat.title)
                 ),
-                parse_mode=ParseMode.HTML,
+                parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup(
                     paginate_modules(0, CHAT_SETTINGS, "stngs", chat=chat_id)
                 ),
