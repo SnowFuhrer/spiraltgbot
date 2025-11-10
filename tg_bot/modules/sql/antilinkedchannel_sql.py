@@ -33,11 +33,10 @@ class AntiPinChannelSettings(BASE):
     def __repr__(self):
         return "<Antipin setting {} ({})>".format(self.chat_id, self.setting)
 
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
-AntiLinkedChannelSettings.__table__.create(checkfirst=True)
 ANTI_LINKED_CHANNEL_SETTING_LOCK = threading.RLock()
-
-AntiPinChannelSettings.__table__.create(checkfirst=True)
 ANTI_PIN_CHANNEL_SETTING_LOCK = threading.RLock()
 
 

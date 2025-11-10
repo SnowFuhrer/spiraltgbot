@@ -41,8 +41,8 @@ class StickerSettings(BASE):
         )
 
 
-StickersFilters.__table__.create(checkfirst=True)
-StickerSettings.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 STICKERS_FILTER_INSERTION_LOCK = threading.RLock()
 STICKSET_FILTER_INSERTION_LOCK = threading.RLock()

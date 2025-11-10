@@ -36,10 +36,8 @@ class GbanSettings(BASE):
     def __repr__(self):
         return "<Gban setting {} ({})>".format(self.chat_id, self.setting)
 
-
-GloballyBannedUsers.__table__.create(checkfirst=True)
-GbanSettings.__table__.create(checkfirst=True)
-
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 GBANNED_USERS_LOCK = threading.RLock()
 GBAN_SETTING_LOCK = threading.RLock()
 GBANNED_LIST = set()

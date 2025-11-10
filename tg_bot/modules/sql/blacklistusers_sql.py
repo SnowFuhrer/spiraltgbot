@@ -15,7 +15,8 @@ class BlacklistUsers(BASE):
         self.reason = reason
 
 
-BlacklistUsers.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 BLACKLIST_LOCK = threading.RLock()
 BLACKLIST_USERS = set()

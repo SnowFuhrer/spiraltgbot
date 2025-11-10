@@ -1,6 +1,5 @@
 import threading
 
-from sqlalchemy.sql.sqltypes import BigInteger
 
 from tg_bot.modules.sql import BASE, SESSION
 from sqlalchemy import (
@@ -10,6 +9,7 @@ from sqlalchemy import (
     UnicodeText,
     UniqueConstraint,
     func,
+    BigInteger,
 )
 
 from tg_bot.modules.sql.cache_utils import cached, clear_cache, invalidate_cache_pattern
@@ -66,12 +66,9 @@ class ChatMembers(BASE):
         return "<Chat user {} in chat {}>".format(self.user, self.chat)
 
 
-Users.__table__.create(checkfirst=True)
-Chats.__table__.create(checkfirst=True)
-ChatMembers.__table__.create(checkfirst=True)
-
 INSERTION_LOCK = threading.RLock()
-
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 def ensure_bot_in_db_by_values(bot_id: int, username: str | None):
     """
@@ -225,7 +222,7 @@ def del_user(user_id):
             invalidate_user_cache(user_id)
             return True
 
-        SESSION.query(ChatMembers).filter(ChatMembers.user == user_id).delete()
+        SESSION.query(ChatMembers).filter(ChatMembers.user == user_id).delete(synchronize_session=False)
         SESSION.commit()
         invalidate_user_cache(user_id)
     return False

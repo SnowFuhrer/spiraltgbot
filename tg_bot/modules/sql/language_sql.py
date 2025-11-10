@@ -19,8 +19,8 @@ class ChatLangs(BASE):
 
 CHAT_LANG = {}
 LANG_LOCK = threading.RLock()
-ChatLangs.__table__.create(checkfirst=True)
-
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 def set_lang(chat_id: str, lang: str) -> None:
     with LANG_LOCK:

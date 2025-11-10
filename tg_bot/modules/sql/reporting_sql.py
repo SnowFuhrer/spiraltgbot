@@ -31,8 +31,8 @@ class ReportingChatSettings(BASE):
         return "<Chat report settings ({})>".format(self.chat_id)
 
 
-ReportingUserSettings.__table__.create(checkfirst=True)
-ReportingChatSettings.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 CHAT_LOCK = threading.RLock()
 USER_LOCK = threading.RLock()

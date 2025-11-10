@@ -89,11 +89,8 @@ class FedSubs(BASE):
 # BansF.__table__.drop()
 # FedSubs.__table__.drop()
 
-Federations.__table__.create(checkfirst=True)
-ChatF.__table__.create(checkfirst=True)
-BansF.__table__.create(checkfirst=True)
-FedsUserSettings.__table__.create(checkfirst=True)
-FedSubs.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 FEDS_LOCK = threading.RLock()
 CHAT_FEDS_LOCK = threading.RLock()

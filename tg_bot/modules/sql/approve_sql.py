@@ -19,7 +19,8 @@ class Approvals(BASE):
         return "<Approve %s>" % self.user_id
 
 
-Approvals.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 APPROVE_INSERTION_LOCK = threading.RLock()
 

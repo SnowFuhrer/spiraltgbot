@@ -44,8 +44,8 @@ class Buttons(BASE):
         self.same_line = same_line
 
 
-Notes.__table__.create(checkfirst=True)
-Buttons.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 NOTES_INSERTION_LOCK = threading.RLock()
 BUTTONS_INSERTION_LOCK = threading.RLock()

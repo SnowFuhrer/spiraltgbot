@@ -75,9 +75,8 @@ class Restrictions(BASE):
 # For those who faced database error, Just uncomment the
 # line below and run bot for 1 time & remove that line!
 
-Permissions.__table__.create(checkfirst=True)
-# Permissions.__table__.drop()
-Restrictions.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 PERM_LOCK = threading.RLock()
 RESTR_LOCK = threading.RLock()

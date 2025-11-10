@@ -61,8 +61,8 @@ class LogChannelSettings(BASE):
         return self.log_action
 
 
-GroupLogs.__table__.create(checkfirst=True)
-LogChannelSettings.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 LOGS_INSERTION_LOCK = threading.RLock()
 LOG_SETTING_LOCK = threading.RLock()

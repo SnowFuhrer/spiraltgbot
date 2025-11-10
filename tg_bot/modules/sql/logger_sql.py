@@ -16,7 +16,8 @@ class LoggerSettings(BASE):
     def __repr__(self):
         return "<Chat log setting {} ({})>".format(self.chat_id, self.setting)
 
-LoggerSettings.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 LOG_SETTING_LOCK = threading.RLock()
 

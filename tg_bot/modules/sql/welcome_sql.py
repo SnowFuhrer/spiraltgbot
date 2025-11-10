@@ -316,13 +316,8 @@ class RaidMode(BASE):
         self.acttime = acttime
         # self.permanent = permanent
 
-Welcome.__table__.create(checkfirst=True)
-WelcomeButtons.__table__.create(checkfirst=True)
-GoodbyeButtons.__table__.create(checkfirst=True)
-WelcomeMute.__table__.create(checkfirst=True)
-WelcomeMuteUsers.__table__.create(checkfirst=True)
-CleanServiceSetting.__table__.create(checkfirst=True)
-RaidMode.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 INSERTION_LOCK = threading.RLock()
 WELC_BTN_LOCK = threading.RLock()

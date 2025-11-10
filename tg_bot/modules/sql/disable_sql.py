@@ -18,7 +18,9 @@ class Disable(BASE):
         return "Disabled cmd {} in {}".format(self.command, self.chat_id)
 
 
-Disable.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
+
 DISABLE_INSERTION_LOCK = threading.RLock()
 
 DISABLED = {}

@@ -42,8 +42,8 @@ class BlacklistSettings(BASE):
         )
 
 
-BlackListFilters.__table__.create(checkfirst=True)
-BlacklistSettings.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 BLACKLIST_FILTER_INSERTION_LOCK = threading.RLock()
 BLACKLIST_SETTINGS_INSERTION_LOCK = threading.RLock()

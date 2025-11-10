@@ -32,8 +32,8 @@ class UserBio(BASE):
         return "<User info %d>" % self.user_id
 
 
-UserInfo.__table__.create(checkfirst=True)
-UserBio.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 INSERTION_LOCK = threading.RLock()
 

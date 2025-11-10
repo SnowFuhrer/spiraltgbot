@@ -1,9 +1,9 @@
 import threading
 
-from sqlalchemy.sql.sqltypes import BigInteger
+#from sqlalchemy.sql.sqltypes import BigInteger
 
 from tg_bot.modules.sql import BASE, SESSION
-from sqlalchemy import Boolean, Column, Integer, String, UnicodeText, distinct, func
+from sqlalchemy import Boolean, Column, Integer, String, UnicodeText, distinct, func, BigInteger
 from sqlalchemy.dialects import postgresql
 
 
@@ -64,9 +64,8 @@ class WarnSettings(BASE):
         return "<{} has {} possible warns.>".format(self.chat_id, self.warn_limit)
 
 
-Warns.__table__.create(checkfirst=True)
-WarnFilters.__table__.create(checkfirst=True)
-WarnSettings.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 WARN_INSERTION_LOCK = threading.RLock()
 WARN_FILTER_INSERTION_LOCK = threading.RLock()

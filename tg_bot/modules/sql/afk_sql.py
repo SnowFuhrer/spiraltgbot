@@ -23,7 +23,9 @@ class AFK(BASE):
         return f"afk_status for {self.user_id}"
 
 
-AFK.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
+
 INSERTION_LOCK = threading.RLock()
 
 AFK_USERS = {}

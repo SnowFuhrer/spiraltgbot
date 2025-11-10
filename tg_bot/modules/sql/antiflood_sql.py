@@ -38,8 +38,8 @@ class FloodSettings(BASE):
         return "<{} will executing {} for flood.>".format(self.chat_id, self.flood_type)
 
 
-FloodControl.__table__.create(checkfirst=True)
-FloodSettings.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 INSERTION_FLOOD_LOCK = threading.RLock()
 INSERTION_FLOOD_SETTINGS_LOCK = threading.RLock()

@@ -2,8 +2,7 @@ import threading
 import time
 from typing import Union
 
-from sqlalchemy import Column, String, Boolean, UnicodeText, Integer
-from sqlalchemy.sql.sqltypes import BigInteger
+from sqlalchemy import Column, String, Boolean, UnicodeText, Integer, BigInteger
 
 from tg_bot.modules.sql import SESSION, BASE
 
@@ -50,9 +49,8 @@ class ConnectionHistory(BASE):
         return "<connection user {} history {}>".format(self.user_id, self.chat_id)
 
 
-ChatAccessConnectionSettings.__table__.create(checkfirst=True)
-Connection.__table__.create(checkfirst=True)
-ConnectionHistory.__table__.create(checkfirst=True)
+with SESSION() as _s:
+    BASE.metadata.create_all(bind=_s.get_bind())
 
 CHAT_ACCESS_LOCK = threading.RLock()
 CONNECTION_INSERTION_LOCK = threading.RLock()
