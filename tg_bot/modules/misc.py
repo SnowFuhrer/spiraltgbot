@@ -8,7 +8,6 @@ from subprocess import Popen, PIPE
 import datetime
 import platform
 from platform import python_version
-
 from telegram import Chat, Update, User, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes, filters as tg_filters
@@ -34,6 +33,7 @@ from tg_bot.modules.sql import SESSION
 from tg_bot.modules.helper_funcs.chat_status import user_admin, sudo_plus
 from tg_bot.modules.helper_funcs.extraction import extract_user
 import tg_bot.modules.sql.users_sql as sql
+from sqlalchemy import text
 from tg_bot.modules.users import __user_info__ as chat_count
 from tg_bot.modules.language import gs
 from tg_bot.modules.helper_funcs.decorators import kigcmd, kigcallback, rate_limit
@@ -363,7 +363,7 @@ stats_str = '''
 @sudo_plus
 @rate_limit(40, 60)
 async def stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    db_size = SESSION.execute("SELECT pg_size_pretty(pg_database_size(current_database()))").scalar_one_or_none()
+    db_size = SESSION.execute(text("SELECT pg_size_pretty(pg_database_size(current_database()))")).scalar_one_or_none()
     uptime = datetime.datetime.fromtimestamp(boot_time()).strftime("%Y-%m-%d %H:%M:%S")
     botuptime = get_readable_time((time.time() - StartTime))
     status = "*╒═══「 System statistics: 」*\n\n"
